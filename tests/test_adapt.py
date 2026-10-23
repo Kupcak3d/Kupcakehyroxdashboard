@@ -80,3 +80,21 @@ def test_issue_form_parsing():
     log = to_log({"number": 7, "body": body, "created_at": "2026-10-23T00:00:00Z"})
     assert log == {"issue": 7, "date": "2026-10-22", "station": "wall_balls", "seconds": 342,
                    "fresh": False, "full_distance": True, "notes": ""}
+
+
+def test_hrv_drop_and_poor_sleep_count_as_low_recovery():
+    base = {f"2026-10-{d}": {"hrv": 60, "resting_hr": 50} for d in range(19, 26)}
+    base["2026-10-26"] = {"hrv": 48, "resting_hr": 50}
+    base["2026-10-27"] = {"hrv": 59, "resting_hr": 50, "sleep_score": 41}
+    res = run(steady_history(), base, today="2026-10-27")
+    tue = next(s for s in res["sessions"] if s["date"] == "2026-10-27")
+    assert tue["kind"] == "easy"
+    assert any("HRV 48" in r for f in res["readiness"] for r in f["reasons"])
+
+
+def test_health_api_mapping():
+    from hyrox.garmin import from_health_api
+    row = from_health_api({"dailies": {"restingHeartRateInBeatsPerMinute": 49},
+                           "sleeps": {"overallSleepScore": {"value": 81}, "durationInSeconds": 27000},
+                           "hrv": {"lastNightAvg": 58}}, "2026-10-22")
+    assert (row["resting_hr"], row["sleep_score"], row["sleep_h"], row["hrv"]) == (49, 81, 7.5, 58)

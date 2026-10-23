@@ -12,6 +12,8 @@ RUN_SPORTS = {"Run", "TrailRun", "VirtualRun"}
 WORK_LAP_MAX_PACE = 330      # laps faster than 5:30/km count as interval reps
 LOW_READINESS = 40
 RHR_ELEVATED = 5             # bpm over the 7-day baseline
+HRV_DROP = 0.85              # last-night HRV below 85% of the 7-day baseline
+SLEEP_POOR = 50              # Garmin sleep score
 PACE_STEP = 5                # s/km per calibration step
 PACE_LIMIT = 10              # never move interval targets more than this from the plan
 ACWR_HIGH, ACWR_CAUTION = 1.5, 1.3
@@ -114,6 +116,13 @@ def readiness_flags(wellness, today, days=14):
                 if x in wellness and wellness[x].get("resting_hr")]
         if w.get("resting_hr") and len(base) >= 4 and w["resting_hr"] >= sum(base) / len(base) + RHR_ELEVATED:
             reasons.append(f"resting HR {w['resting_hr']} (baseline {round(sum(base) / len(base))})")
+        hrv_base = [wellness[x]["hrv"] for x in
+                    ((d - timedelta(days=k)).isoformat() for k in range(1, 8))
+                    if x in wellness and wellness[x].get("hrv")]
+        if w.get("hrv") and len(hrv_base) >= 4 and w["hrv"] < HRV_DROP * sum(hrv_base) / len(hrv_base):
+            reasons.append(f"HRV {w['hrv']} ms (baseline {round(sum(hrv_base) / len(hrv_base))})")
+        if w.get("sleep_score") is not None and w["sleep_score"] < SLEEP_POOR:
+            reasons.append(f"sleep score {w['sleep_score']}")
         out.append({"date": d.isoformat(), "low": bool(reasons), "reasons": reasons})
     return out
 

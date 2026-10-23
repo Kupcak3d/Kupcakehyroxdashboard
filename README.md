@@ -11,7 +11,7 @@ GitHub Pages.
 
 | Signal | Rule | Source |
 |---|---|---|
-| Garmin readiness < 40, HRV status low/poor, or resting HR 5+ bpm over your 7-day baseline | One low day: a caution on the next hard session. **Two in a row:** the next hard session within 2 days becomes an easy run. | Plan: "If legs feel heavy two days running, swap Tuesday intervals for an easy run." |
+| Garmin HRV under 85% of your 7-day baseline, resting HR 5+ bpm over baseline, sleep score under 50 (or readiness < 40 / HRV status low on the fallback) | One low day: a caution on the next hard session. **Two in a row:** the next hard session within 2 days becomes an easy run. | Plan: "If legs feel heavy two days running, swap Tuesday intervals for an easy run." |
 | Interval rep pace (Strava laps faster than 5:30/km) | Beat target by 5+ s/km two sessions running → future rep targets 5 s faster. Missed by 8+ s → 5 s slower. Capped at ±10 s from the plan, never in race week. | Keeps Tuesdays hard but achievable |
 | Acute:chronic load ratio | Above 1.5 → next 7 days of easy and long runs trimmed 20%. Above 1.3 → warning. | Standard load management |
 | Weekly km vs plan | Under 80% or over 115% → a note not to chase or overshoot the ramp | Plan's 30 → 40 km ramp |
@@ -38,10 +38,25 @@ issues still count.
    `localhost`. Then run `pip install requests && python scripts/strava_auth.py <client_id> <client_secret>`
    and add the three printed values as repository secrets (Settings → Secrets and variables →
    Actions): `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN`.
-3. **Garmin** (optional but recommended): `pip install garminconnect && python scripts/garmin_auth.py`,
-   then save the printed token as the `GARMIN_TOKENS` secret. Garmin has no public API, so this
-   uses the unofficial [garminconnect](https://github.com/cyberjunky/python-garminconnect)
-   library. If Garmin changes its login, the dashboard keeps working on Strava alone.
+3. **Garmin (official Health API).** Garmin doesn't answer requests for data. It pushes
+   summaries to a web address you register, so `garmin-worker/` is a small free Cloudflare
+   Worker that receives them and hands them to the sync.
+   1. Create a free Cloudflare account. Make an API token with the **Edit Cloudflare Workers**
+      template and copy your Account ID (Workers & Pages → Overview, right sidebar).
+   2. Add repo secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `Garmin` (consumer
+      key), `GARMIN_SECRET` (consumer secret), and `GARMIN_EXPORT_TOKEN` (any long random
+      string you make up, for example the output of `openssl rand -hex 24`).
+   3. Actions → **Deploy Garmin receiver** → Run workflow. The log prints the Worker URL, like
+      `https://hyrox-garmin.<you>.workers.dev`. Add it as the `GARMIN_EXPORT_URL` secret.
+   4. In the Garmin developer portal's endpoint configuration, set **Dailies**, **Sleeps** and
+      **HRV** (push or ping both work) to `https://hyrox-garmin.<you>.workers.dev/garmin/push`.
+      Also add the Worker's `/callback` URL as the app's redirect URL if the portal asks for one.
+   5. Open `https://hyrox-garmin.<you>.workers.dev/connect?token=<GARMIN_EXPORT_TOKEN>` and
+      approve access. The last 30 days are backfilled within a few minutes.
+
+   *Fallback without developer access:* `pip install garminconnect && python scripts/garmin_auth.py`,
+   then save the output as `GARMIN_TOKENS`. This uses the unofficial
+   [garminconnect](https://github.com/cyberjunky/python-garminconnect) library.
 4. Actions → **Update dashboard** → **Run workflow**.
 
 ## Privacy

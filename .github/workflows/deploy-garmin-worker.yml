@@ -1,0 +1,67 @@
+name: Deploy Garmin receiver
+
+on:
+  push:
+    branches: [main]
+    paths: ["garmin-worker/**", ".github/workflows/deploy-garmin-worker.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        working-directory: garmin-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: node test.mjs
+
+      - name: Check Cloudflare secrets
+        id: cf
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID not set yet; skipping deploy."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find or create the KV namespace
+        if: steps.cf.outputs.ready == 'true'
+        run: |
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces"
+          auth="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          id=$(curl -fsS -H "$auth" "$api?per_page=100" | jq -r '.result[] | select(.title=="hyrox-garmin-data") | .id')
+          if [ -z "$id" ]; then
+            id=$(curl -fsS -X POST -H "$auth" -H "Content-Type: application/json" -d '{"title":"hyrox-garmin-data"}' "$api" | jq -r '.result.id')
+          fi
+          sed -i "s/KV_NAMESPACE_ID/$id/" wrangler.toml
+
+      - name: Deploy
+        if: steps.cf.outputs.ready == 'true'
+        run: npx --yes wrangler@4 deploy
+
+      - name: Set Worker secrets
+        if: steps.cf.outputs.ready == 'true'
+        env:
+          GARMIN_CLIENT_ID: ${{ secrets.Garmin }}
+          GARMIN_CLIENT_SECRET: ${{ secrets.GARMIN_SECRET }}
+          EXPORT_TOKEN: ${{ secrets.GARMIN_EXPORT_TOKEN }}
+        run: |
+          for name in GARMIN_CLIENT_ID GARMIN_CLIENT_SECRET EXPORT_TOKEN; do
+            if [ -n "${!name}" ]; then
+              printf '%s' "${!name}" | npx --yes wrangler@4 secret put "$name"
+            else
+              echo "::warning::$name is not set in repo secrets"
+            fi
+          done
