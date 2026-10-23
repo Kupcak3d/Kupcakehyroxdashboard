@@ -1,0 +1,72 @@
+name: Update dashboard
+
+on:
+  schedule:
+    - cron: "0 12 * * *"   # ~4–5am Vancouver, after Garmin has your overnight data
+    - cron: "0 3 * * *"    # ~7–8pm Vancouver, picks up the day's workout
+  issues:
+    types: [opened, edited, closed]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dashboard
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event_name != 'issues' || contains(github.event.issue.labels.*.name, 'station-log')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - run: python -m pytest -q
+
+      # Synced data lives in the Actions cache, not the repo, so your health data
+      # isn't committed. Losing the cache just means a slower full re-sync.
+      - uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: data-${{ github.run_id }}
+          restore-keys: data-
+
+      - name: Sync and build
+        env:
+          STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
+          GARMIN_TOKENS: ${{ secrets.GARMIN_TOKENS }}
+          GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python -m hyrox.build
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data
+          key: data-${{ github.run_id }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4

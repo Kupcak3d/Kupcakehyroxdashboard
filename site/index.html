@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hyrox Training</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="viz-root">
+  <header class="top">
+    <div>
+      <h1>Hyrox Vancouver</h1>
+      <p class="sub" id="sub">Loading…</p>
+    </div>
+    <div class="countdown"><span id="days">–</span><small>days to race</small></div>
+  </header>
+
+  <section id="alerts" class="alerts" aria-live="polite"></section>
+
+  <section class="grid two">
+    <article class="card" id="today-card">
+      <h2>Today</h2>
+      <div id="today"></div>
+    </article>
+    <article class="card">
+      <h2>Next 7 days</h2>
+      <ol id="upcoming" class="sessions"></ol>
+    </article>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="grid two">
+    <article class="card">
+      <h2>Fitness and fatigue</h2>
+      <p class="hint">Fitness is your 6-week training load; fatigue is the last week. Form is the gap between them.</p>
+      <div class="legend"><span class="key s1"></span>Fitness <span class="key s2"></span>Fatigue</div>
+      <div class="chart" id="load-chart"></div>
+    </article>
+    <article class="card">
+      <h2>Weekly running</h2>
+      <p class="hint">Planned (including adjustments) vs what Strava recorded.</p>
+      <div class="legend"><span class="key s1 dim"></span>Planned <span class="key s1"></span>Actual</div>
+      <div class="chart" id="km-chart"></div>
+    </article>
+  </section>
+
+  <section class="card">
+    <div class="row-head">
+      <h2>Stations</h2>
+      <a id="log-link" class="button" target="_blank" rel="noopener">Log a result</a>
+    </div>
+    <p class="hint">Estimates use your latest full-distance log on tired legs. Fresh times get +10% for race fatigue.</p>
+    <div class="table-wrap"><table id="stations"></table></div>
+  </section>
+
+  <section class="grid two">
+    <article class="card">
+      <h2>Recovery (Garmin)</h2>
+      <div class="table-wrap"><table id="recovery"></table></div>
+    </article>
+    <article class="card">
+      <h2>Why the plan changed</h2>
+      <ul id="changes" class="changes"></ul>
+    </article>
+  </section>
+
+  <section class="card">
+    <h2>Full plan</h2>
+    <div id="plan"></div>
+  </section>
+
+  <footer id="footer"></footer>
+</main>
+<div id="tip" class="tip" role="tooltip" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+{
+  "name": "Hyrox Vancouver Training Plan",
+  "source": "https://claude.ai/artifact/7MtfjqtKx9qpbiJo3CGBQ5",
+  "timezone": "America/Vancouver",
+  "race": {
+    "date": "2026-12-19",
+    "division": "Open Men",
+    "target": "1:20:00",
+    "run_pace": { "min": "5:05", "max": "5:15", "first_km": "5:15", "floor": "5:00" }
+  },
+  "athlete": {
+    "max_hr": 190,
+    "resting_hr": 55,
+    "easy_pace": { "min": "6:15", "max": "6:45" }
+  },
+  "stations": [
+    { "key": "ski", "name": "SkiErg", "standard": "1000 m", "target": "4:15", "benchmark": "3:50" },
+    { "key": "sled_push", "name": "Sled push", "standard": "50 m, 152 kg incl. sled", "target": "3:15" },
+    { "key": "sled_pull", "name": "Sled pull", "standard": "50 m, 103 kg incl. sled", "target": "4:15" },
+    { "key": "bbj", "name": "Burpee broad jumps", "standard": "80 m", "target": "4:45", "benchmark": "4:00" },
+    { "key": "row", "name": "Row", "standard": "1000 m", "target": "4:00", "benchmark": "3:35" },
+    { "key": "farmers", "name": "Farmers carry", "standard": "200 m, 2 x 24 kg", "target": "1:40" },
+    { "key": "lunges", "name": "Sandbag lunges", "standard": "100 m, 20 kg", "target": "4:45" },
+    { "key": "wall_balls", "name": "Wall balls", "standard": "100 reps, 6 kg to 3 m", "target": "5:00", "benchmark": "6:00" }
+  ],
+  "roxzone_target": "5:30",
+  "phases": [
+    { "name": "Build", "weeks": [1, 2, 3], "goal": "Raise running volume to ~35 km, build strength, set station benchmarks." },
+    { "name": "Hyrox-specific", "weeks": [4, 5, 6, 7], "goal": "Run fast on tired legs. Week 6 is lighter; week 7 peaks with a 75% sim." },
+    { "name": "Peak and taper", "weeks": [8, 9, 10], "goal": "Full dress rehearsal, then cut volume ~30% (wk 9) and ~60% (wk 10)." }
+  ],
+  "weeks": [
+    {
+      "week": 1, "tuesday": "2026-10-13",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "6 x 1 km @ 5:00/km, 90 s rest", "run_km": 10, "intervals": { "reps": 6, "dist_m": 1000, "pace": "5:00", "rest_s": 90 } },
+        { "day": "wed", "kind": "strength", "title": "Strength block + 4 x 25 m sled push, 4 x 25 m sled pull", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "6 km easy + 5 x 10 BBJ, 3 x 25 wall balls", "run_km": 6 },
+        { "day": "fri", "kind": "benchmark", "title": "Benchmark test (done Oct 16)", "run_km": 0, "completed": true },
+        { "day": "sun", "kind": "long", "title": "10 km easy", "run_km": 10 }
+      ]
+    },
+    {
+      "week": 2, "tuesday": "2026-10-20",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "5 x 1.2 km @ 5:00/km, 2 min rest", "run_km": 10, "intervals": { "reps": 5, "dist_m": 1200, "pace": "5:00", "rest_s": 120 } },
+        { "day": "wed", "kind": "strength", "title": "Strength + 3 x 50 m sled push, 3 x 50 m lunges", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "7 km easy + EMOM 10: 6 BBJ, then 4 x 25 wall balls with 10 s breaks", "run_km": 7 },
+        { "day": "sat", "kind": "sim", "title": "4 rounds: 1 km run @ 5:10 + one station (ski, sled push, row, wall balls 50)", "run_km": 6, "sim_pace": "5:10" },
+        { "day": "sun", "kind": "long", "title": "11 km easy", "run_km": 11 }
+      ]
+    },
+    {
+      "week": 3, "tuesday": "2026-10-27",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "8 x 800 m @ 4:50/km, 90 s rest", "run_km": 10.4, "intervals": { "reps": 8, "dist_m": 800, "pace": "4:50", "rest_s": 90 } },
+        { "day": "wed", "kind": "strength", "title": "Strength + 4 x 50 m sled pull, 200 m farmers carry x 3", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "7 km easy + 3 x 20 m BBJ, then 2 x 50 wall balls in sets of 25", "run_km": 7 },
+        { "day": "sat", "kind": "sim", "title": "5 rounds: 1 km run @ 5:10 + station (ski, push, pull, BBJ 40 m, row)", "run_km": 7, "sim_pace": "5:10" },
+        { "day": "sun", "kind": "long", "title": "12 km easy", "run_km": 12 }
+      ]
+    },
+    {
+      "week": 4, "tuesday": "2026-11-03",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "5 x 1 km @ 4:55/km, 75 s rest", "run_km": 9, "intervals": { "reps": 5, "dist_m": 1000, "pace": "4:55", "rest_s": 75 } },
+        { "day": "wed", "kind": "strength", "title": "Strength + 4 x (25 m push → 25 m pull), 90 s rest", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "8 km easy + 4 x 20 m BBJ, then 3 x 30 wall balls", "run_km": 8 },
+        { "day": "sat", "kind": "sim", "title": "Half sim: 4 x (1 km @ 5:10 + ski, push, pull, BBJ 80 m)", "run_km": 6, "sim_pace": "5:10" },
+        { "day": "sun", "kind": "long", "title": "12 km easy", "run_km": 12 }
+      ]
+    },
+    {
+      "week": 5, "tuesday": "2026-11-10",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "3 x 2 km @ 5:00/km, 2 min rest", "run_km": 10, "intervals": { "reps": 3, "dist_m": 2000, "pace": "5:00", "rest_s": 120 } },
+        { "day": "wed", "kind": "strength", "title": "Strength + 3 x (100 m lunges → 30 wall balls)", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "8 km easy + EMOM 12: 7 BBJ, then 2 x 50 wall balls in sets of 25", "run_km": 8 },
+        { "day": "sat", "kind": "sim", "title": "Half sim: 4 x (1 km @ 5:05 + row, farmers, lunges, wall balls 100 in sets of 25)", "run_km": 6, "sim_pace": "5:05" },
+        { "day": "sun", "kind": "long", "title": "13 km easy", "run_km": 13 }
+      ]
+    },
+    {
+      "week": 6, "tuesday": "2026-11-17", "note": "lighter",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "6 x 800 m @ 4:50/km, 2 min rest", "run_km": 8.8, "intervals": { "reps": 6, "dist_m": 800, "pace": "4:50", "rest_s": 120 } },
+        { "day": "wed", "kind": "strength", "title": "Strength, 2 sets each, no stations", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "6 km easy + 2 x 20 m BBJ, 50 wall balls", "run_km": 6 },
+        { "day": "sat", "kind": "sim", "title": "Compromised: 6 x (500 m run @ 4:55 + 15 wall balls)", "run_km": 5, "sim_pace": "4:55" },
+        { "day": "sun", "kind": "long", "title": "10 km easy", "run_km": 10 }
+      ]
+    },
+    {
+      "week": 7, "tuesday": "2026-11-24",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "4 x 1.5 km @ 4:55/km, 90 s rest", "run_km": 10, "intervals": { "reps": 4, "dist_m": 1500, "pace": "4:55", "rest_s": 90 } },
+        { "day": "wed", "kind": "strength", "title": "Strength + 2 x (50 m push → 50 m pull) at race weight", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "8 km easy + 2 x 40 m BBJ, then 100 wall balls for time in sets of 25 (goal 5:00)", "run_km": 8 },
+        { "day": "sat", "kind": "sim", "title": "75% sim: 6 x 1 km @ 5:10 + first 6 stations at race standard", "run_km": 8, "sim_pace": "5:10" },
+        { "day": "sun", "kind": "long", "title": "14 km easy", "run_km": 14 }
+      ]
+    },
+    {
+      "week": 8, "tuesday": "2026-12-01",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "5 x 1 km @ 4:50/km, 75 s rest", "run_km": 9, "intervals": { "reps": 5, "dist_m": 1000, "pace": "4:50", "rest_s": 75 } },
+        { "day": "wed", "kind": "strength", "title": "Strength + 2 x 50 m push, 2 x 50 m pull", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "7 km easy + 3 x 20 m BBJ, then 2 x 50 wall balls in sets of 25", "run_km": 7 },
+        { "day": "sat", "kind": "sim", "title": "Full sim, all 8 runs + 8 stations at race pace. Aim 1:22 or better", "run_km": 10, "sim_pace": "5:10" },
+        { "day": "sun", "kind": "long", "title": "8 km very easy", "run_km": 8 }
+      ]
+    },
+    {
+      "week": 9, "tuesday": "2026-12-08",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "4 x 1 km @ 4:50/km, 90 s rest", "run_km": 8, "intervals": { "reps": 4, "dist_m": 1000, "pace": "4:50", "rest_s": 90 } },
+        { "day": "wed", "kind": "strength", "title": "Strength at 60% load, 2 sets + 2 x 25 m push", "run_km": 0 },
+        { "day": "thu", "kind": "easy_skill", "title": "6 km easy + 25 wall balls, 10 BBJ", "run_km": 6 },
+        { "day": "sat", "kind": "sim", "title": "4 x (1 km @ 5:05 + ski, sled push, BBJ 40 m, wall balls 50)", "run_km": 6, "sim_pace": "5:05" },
+        { "day": "sun", "kind": "long", "title": "8 km easy", "run_km": 8 }
+      ]
+    },
+    {
+      "week": 10, "tuesday": "2026-12-15", "note": "race week",
+      "sessions": [
+        { "day": "tue", "kind": "intervals", "title": "3 x 1 km @ 5:00/km, 2 min rest", "run_km": 7, "intervals": { "reps": 3, "dist_m": 1000, "pace": "5:00", "rest_s": 120 } },
+        { "day": "wed", "kind": "easy", "title": "20 min easy + 2 x 25 m sled push, light", "run_km": 3 },
+        { "day": "thu", "kind": "easy", "title": "20 min easy + 4 strides", "run_km": 3 },
+        { "day": "sat", "kind": "race", "title": "RACE: Hyrox Vancouver", "run_km": 8 },
+        { "day": "sun", "kind": "rest", "title": "Walk, mobility", "run_km": 0 }
+      ]
+    }
+  ]
+}

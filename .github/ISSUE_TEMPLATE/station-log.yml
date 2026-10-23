@@ -1,0 +1,43 @@
+name: Log a station result
+description: Record a station time so the dashboard can update your estimates.
+title: "Station log"
+labels: [station-log]
+body:
+  - type: dropdown
+    id: station
+    attributes:
+      label: Station
+      options: [SkiErg, Sled push, Sled pull, Burpee broad jumps, Row, Farmers carry, Sandbag lunges, Wall balls]
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: Time (m:ss)
+      placeholder: "5:12"
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: Date
+      description: YYYY-MM-DD. Leave blank for today.
+  - type: dropdown
+    id: distance
+    attributes:
+      label: Distance
+      description: Only full race distance/reps count toward your race estimate.
+      options: [Full race distance, Partial]
+    validations:
+      required: true
+  - type: dropdown
+    id: conditions
+    attributes:
+      label: Conditions
+      options: [Tired (in a sim or after running), Fresh (rested)]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
