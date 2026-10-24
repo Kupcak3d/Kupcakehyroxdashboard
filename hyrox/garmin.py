@@ -129,5 +129,7 @@ def sync(cache, today, days=45):
         print(f"garmin: Personal API failed, keeping cached data: {e}")
         return cache
     cache.update(fresh)
-    print(f"garmin: {len(fresh)} days from {start} to {today}")
+    coverage = {m: sum(r.get(m) is not None for r in fresh.values())
+                for m in ("resting_hr", "hrv", "hrv_status", "sleep_score", "sleep_h", "body_battery_high")}
+    print(f"garmin: {len(fresh)} days from {start} to {today}; days with each metric: {coverage}")
     return cache
