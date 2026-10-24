@@ -2,6 +2,9 @@
   "name": "Hyrox Vancouver Training Plan",
   "source": "https://claude.ai/artifact/7MtfjqtKx9qpbiJo3CGBQ5",
   "timezone": "America/Vancouver",
+  "swaps": [
+    { "dates": ["2026-10-22", "2026-10-24"], "note": "Jeff did the sim Thursday" }
+  ],
   "race": {
     "date": "2026-12-19",
     "division": "Open Men",

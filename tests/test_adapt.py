@@ -115,6 +115,14 @@ def test_personal_api_mapping():
         (49, 88, 81, 7.5, 58, "BALANCED")
 
 
+def test_swaps_move_sessions_between_days():
+    by_date = {s["date"]: s for s in expand_sessions(PLAN)}
+    assert by_date["2026-10-22"]["kind"] == "sim"
+    sat = by_date["2026-10-24"]
+    assert sat["kind"] == "easy_skill" and sat["moved"]
+    assert sat["notes"][0].startswith("Moved from Thu Oct 22")
+
+
 def test_garmin_activities_normalize_and_laps():
     from datetime import date
     from hyrox.garmin import sync_activities
