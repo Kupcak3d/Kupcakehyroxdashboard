@@ -45,8 +45,20 @@ def main(argv=None):
     logs = read_json(DATA / "station_logs.json", [])
     if not args.offline:
         interval_dates = {s["date"] for s in sessions if s["kind"] == "intervals"}
-        acts = strava.sync(acts, history_start.isoformat(), interval_dates)
-        well = garmin.sync(well, today)
+        use_strava = bool(os.environ.get("STRAVA_REFRESH_TOKEN"))
+        if use_strava:
+            acts = {k: a for k, a in acts.items() if a.get("source") == "strava"}
+            acts = strava.sync(acts, history_start.isoformat(), interval_dates)
+        try:
+            with garmin.client_session() as client:
+                if client:
+                    well = garmin.sync(client, well, today)
+                    if not use_strava:
+                        # Garmin is the activity source unless Strava is configured.
+                        acts = {k: a for k, a in acts.items() if a.get("source") == "garmin"}
+                        acts = garmin.sync_activities(client, acts, history_start, today, interval_dates)
+        except Exception as e:
+            print(f"garmin: sync failed, keeping cached data: {e}")
         logs = stations.fetch_logs() or logs
         write_json(DATA / "activities.json", acts)
         write_json(DATA / "wellness.json", well)
@@ -65,7 +77,8 @@ def main(argv=None):
         "today": today.isoformat(),
         "plan": {k: plan[k] for k in ("name", "source", "race", "phases", "roxzone_target")},
         "repo": os.environ.get("GITHUB_REPOSITORY"),
-        "sources": {"strava": bool(activities), "garmin": bool(well), "station_logs": len(logs)},
+        "sources": {"activities": activities[-1]["source"] if activities else None,
+                    "garmin": bool(well), "station_logs": len(logs)},
         **result,
         "load": load_rows[-56:],
         "wellness": [well[d] for d in sorted(well) if d >= (today - timedelta(days=28)).isoformat()],

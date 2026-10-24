@@ -1,8 +1,8 @@
 # Hyrox training dashboard
 
 A live dashboard for the [Hyrox Vancouver training plan](https://claude.ai/artifact/7MtfjqtKx9qpbiJo3CGBQ5)
-(Open Men, Sat Dec 19 2026, target 1:20). Twice a day, a GitHub Action pulls your runs from
-Strava and your recovery data from Garmin, adjusts upcoming sessions, and publishes the page to
+(Open Men, Sat Dec 19 2026, target 1:20). Twice a day, a GitHub Action pulls your workouts and
+recovery data from Garmin, adjusts upcoming sessions, and publishes the page to
 GitHub Pages.
 
 **Dashboard:** https://kupcak3d.github.io/Kupcakehyroxdashboard/
@@ -12,7 +12,7 @@ GitHub Pages.
 | Signal | Rule | Source |
 |---|---|---|
 | Garmin HRV under 85% of your 7-day baseline or HRV status low/poor, resting HR 5+ bpm over baseline, or sleep score under 50 | One low day: a caution on the next hard session. **Two in a row:** the next hard session within 2 days becomes an easy run. | Plan: "If legs feel heavy two days running, swap Tuesday intervals for an easy run." |
-| Interval rep pace (Strava laps faster than 5:30/km) | Beat target by 5+ s/km two sessions running → future rep targets 5 s faster. Missed by 8+ s → 5 s slower. Capped at ±10 s from the plan, never in race week. | Keeps Tuesdays hard but achievable |
+| Interval rep pace (laps faster than 5:30/km) | Beat target by 5+ s/km two sessions running → future rep targets 5 s faster. Missed by 8+ s → 5 s slower. Capped at ±10 s from the plan, never in race week. | Keeps Tuesdays hard but achievable |
 | Acute:chronic load ratio | Above 1.5 → next 7 days of easy and long runs trimmed 20%. Above 1.3 → warning. | Standard load management |
 | Weekly km vs plan | Under 80% or over 115% → a note not to chase or overshoot the ramp | Plan's 30 → 40 km ramp |
 | Easy-run pace | Last 3 easy runs faster than 6:05/km → warning | Plan: easy = 6:15–6:45/km |
@@ -34,7 +34,7 @@ issues still count.
 ## One-time setup
 
 1. **Pages:** repo Settings → Pages → Source: **GitHub Actions**.
-2. **Strava:** create an API app at https://www.strava.com/settings/api with callback domain
+2. **Strava (optional):** workouts come from Garmin by default. To use Strava for them instead, create an API app at https://www.strava.com/settings/api with callback domain
    `localhost`. Then run `pip install requests && python scripts/strava_auth.py <client_id> <client_secret>`
    and add the three printed values as repository secrets (Settings → Secrets and variables →
    Actions): `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN`.
