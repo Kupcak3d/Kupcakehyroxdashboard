@@ -92,9 +92,22 @@ def test_hrv_drop_and_poor_sleep_count_as_low_recovery():
     assert any("HRV 48" in r for f in res["readiness"] for r in f["reasons"])
 
 
-def test_health_api_mapping():
-    from hyrox.garmin import from_health_api
-    row = from_health_api({"dailies": {"restingHeartRateInBeatsPerMinute": 49},
-                           "sleeps": {"overallSleepScore": {"value": 81}, "durationInSeconds": 27000},
-                           "hrv": {"lastNightAvg": 58}}, "2026-10-22")
-    assert (row["resting_hr"], row["sleep_score"], row["sleep_h"], row["hrv"]) == (49, 81, 7.5, 58)
+def test_personal_api_mapping():
+    from datetime import date
+    from hyrox.garmin import fetch
+
+    class Fake:
+        def get_daily_summaries(self, s, e):
+            return [{"calendarDate": "2026-10-22", "restingHeartRate": 49, "bodyBatteryHighestValue": 88}]
+
+        def get_daily_sleep_summaries(self, s, e):
+            return {"dailySleepSummaries": [{"calendarDate": "2026-10-22", "sleepTimeSeconds": 27000,
+                                              "sleepScores": {"overall": {"value": 81}}}]}
+
+        def get_daily_hrv_summaries(self, s, e):
+            return {"hrvSummaries": [{"calendarDate": "2026-10-22", "lastNightAvg": 58, "status": "balanced"}]}
+
+    rows = fetch(Fake(), date(2026, 10, 20), date(2026, 10, 22))
+    r = rows["2026-10-22"]
+    assert (r["resting_hr"], r["body_battery_high"], r["sleep_score"], r["sleep_h"], r["hrv"], r["hrv_status"]) == \
+        (49, 88, 81, 7.5, 58, "BALANCED")

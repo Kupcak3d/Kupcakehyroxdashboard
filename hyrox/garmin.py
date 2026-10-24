@@ -1,110 +1,133 @@
-"""Daily recovery data from Garmin.
+"""Daily recovery data from Garmin's official Personal API.
 
-Preferred: the official Garmin Health API. Garmin pushes summaries to the
-garmin-worker receiver, and this reads them back from its /export endpoint
-(GARMIN_EXPORT_URL + GARMIN_EXPORT_TOKEN).
-
-Fallback: the unofficial garminconnect library, signed in with GARMIN_TOKENS
-from scripts/garmin_auth.py.
+Create a key at https://connect.garmin.com/app/settings/personalApiToken and store it
+as the `Garmin` repository secret (exposed to the build as GARMIN_PERSONAL_API_KEY).
+The key is exchanged for a 24-hour bearer token on each run.
 """
 import os
 from datetime import timedelta
 
-import requests
+CHUNK_DAYS = 14   # keep each range request small; the API's maximum isn't documented
+
+# Candidate field names per metric. The Personal API's response schemas aren't
+# published outside Swagger, so match the names Garmin Connect uses elsewhere.
+FIELDS = {
+    "resting_hr": ("restingHeartRate", "restingHeartRateValue", "restingHeartRateInBeatsPerMinute"),
+    "body_battery_high": ("bodyBatteryHighestValue", "bodyBatteryHigh", "highestBodyBattery"),
+    "stress_avg": ("averageStressLevel", "avgStressLevel", "overallStressLevel"),
+    "hrv": ("lastNightAvg", "lastNightAverage"),
+    "hrv_status": ("status", "hrvStatus"),
+    "sleep_score": ("overallSleepScore", "sleepScore", "overall", "value"),
+    "sleep_s": ("sleepTimeSeconds", "totalSleepSeconds", "durationInSeconds", "sleepDurationInSeconds"),
+}
+DATE_KEYS = ("calendarDate", "date", "summaryDate")
 
 
-def from_health_api(day, d):
-    """Map one day of official Health API summaries to a wellness row."""
-    dailies, sleeps, hrv = day.get("dailies") or {}, day.get("sleeps") or {}, day.get("hrv") or {}
-    score = sleeps.get("overallSleepScore")
-    return {
-        "date": d,
-        "resting_hr": dailies.get("restingHeartRateInBeatsPerMinute"),
-        "body_battery_high": dailies.get("bodyBatteryHighestValue"),
-        "stress_avg": dailies.get("averageStressLevel"),
-        "hrv": hrv.get("lastNightAvg"),
-        "hrv_status": None,
-        "sleep_score": score.get("value") if isinstance(score, dict) else score,
-        "sleep_h": round(sleeps["durationInSeconds"] / 3600, 1) if sleeps.get("durationInSeconds") else None,
-        "readiness": None,  # not offered by the Health API; HRV/RHR/sleep rules cover it
-    }
+def records(payload):
+    """Yield dicts that carry a calendar date, wherever the response nests them."""
+    if isinstance(payload, list):
+        for x in payload:
+            yield from records(x)
+    elif isinstance(payload, dict):
+        if any(k in payload for k in DATE_KEYS):
+            yield payload
+        else:
+            for v in payload.values():
+                if isinstance(v, (list, dict)):
+                    yield from records(v)
 
 
-def sync_health_api(cache):
-    r = requests.get(os.environ["GARMIN_EXPORT_URL"].rstrip("/") + "/export",
-                     params={"token": os.environ["GARMIN_EXPORT_TOKEN"], "days": 60}, timeout=60)
-    r.raise_for_status()
-    body = r.json()
-    if not body.get("connected"):
-        print("garmin: receiver is up but no account connected yet (open /connect?token=...)")
-    for d, day in body.get("days", {}).items():
-        cache[d] = from_health_api(day, d)
-    print(f"garmin: {len(body.get('days', {}))} days from Health API receiver")
-    return cache
+def find(rec, names, depth=3):
+    """First scalar value under any of `names`, searching nested dicts breadth-first."""
+    level = [rec]
+    for _ in range(depth):
+        nxt = []
+        for d in level:
+            for n in names:
+                v = d.get(n)
+                if isinstance(v, dict) and isinstance(v.get("value"), (int, float)):
+                    return v["value"]
+                if isinstance(v, (int, float, str)) and not isinstance(v, bool):
+                    return v
+            nxt.extend(v for v in d.values() if isinstance(v, dict))
+        level = nxt
+    return None
 
 
-def _client():
-    from garminconnect import Garmin
+def merge(rows, payload, metrics, label):
+    n = 0
+    for rec in records(payload):
+        d = next(str(rec[k])[:10] for k in DATE_KEYS if k in rec)
+        row = rows.setdefault(d, {"date": d})
+        for m in metrics:
+            v = find(rec, FIELDS[m])
+            if v is not None:
+                row[m] = v
+        n += 1
+    if n == 0:
+        # Log the response's shape (key names only, never values) so the mapping can be fixed.
+        shape = sorted(payload) if isinstance(payload, dict) else type(payload).__name__
+        print(f"garmin: no dated records in {label} response; top-level: {shape}")
+    return n
 
-    tokens = os.environ.get("GARMIN_TOKENS")
-    if tokens:
-        g = Garmin()
-        g.login(tokens)
-        return g
-    g = Garmin(os.environ["GARMIN_EMAIL"], os.environ["GARMIN_PASSWORD"])
-    g.login()
-    return g
 
-
-def _safe(fn, *args):
+def finish(row):
+    sleep_s = row.pop("sleep_s", None)
     try:
-        return fn(*args)
-    except Exception as e:  # one bad endpoint shouldn't sink the whole sync
-        print(f"garmin: {fn.__name__} failed: {e}")
-        return None
+        row["sleep_h"] = round(float(sleep_s) / 3600, 1) if sleep_s else None
+    except (TypeError, ValueError):
+        row["sleep_h"] = None
+    for m in ("resting_hr", "body_battery_high", "stress_avg", "hrv", "sleep_score"):
+        try:
+            row[m] = round(float(row[m])) if row.get(m) is not None else None
+        except (TypeError, ValueError):
+            row[m] = None
+    if isinstance(row.get("hrv_status"), str):
+        row["hrv_status"] = row["hrv_status"].upper()
+    else:
+        row["hrv_status"] = None
+    row.setdefault("readiness", None)  # training readiness isn't in the Personal API
+    return row
 
 
-def day(g, d):
-    ds = d.isoformat()
-    stats = _safe(g.get_stats, ds) or {}
-    hrv = (_safe(g.get_hrv_data, ds) or {}).get("hrvSummary") or {}
-    sleep = ((_safe(g.get_sleep_data, ds) or {}).get("dailySleepDTO") or {})
-    readiness = _safe(g.get_training_readiness, ds)
-    if isinstance(readiness, list):
-        readiness = readiness[0] if readiness else {}
-    return {
-        "date": ds,
-        "resting_hr": stats.get("restingHeartRate"),
-        "body_battery_high": stats.get("bodyBatteryHighestValue"),
-        "hrv": hrv.get("lastNightAvg"),
-        "hrv_status": hrv.get("status"),
-        "sleep_score": ((sleep.get("sleepScores") or {}).get("overall") or {}).get("value"),
-        "sleep_h": round(sleep["sleepTimeSeconds"] / 3600, 1) if sleep.get("sleepTimeSeconds") else None,
-        "readiness": (readiness or {}).get("score"),
-    }
+def fetch(client, start, end):
+    rows = {}
+    calls = [
+        ("daily summaries", client.get_daily_summaries, ("resting_hr", "body_battery_high", "stress_avg")),
+        ("sleep", client.get_daily_sleep_summaries, ("sleep_score", "sleep_s")),
+        ("hrv", client.get_daily_hrv_summaries, ("hrv", "hrv_status")),
+    ]
+    for label, fn, metrics in calls:
+        s = start
+        while s <= end:
+            e = min(end, s + timedelta(days=CHUNK_DAYS - 1))
+            try:
+                merge(rows, fn(s, e), metrics, label)
+            except Exception as ex:  # one failing endpoint shouldn't sink the sync
+                print(f"garmin: {label} {s}..{e} failed: {ex}")
+            s = e + timedelta(days=1)
+    return {d: finish(r) for d, r in rows.items()}
 
 
 def sync(cache, today, days=45):
-    """cache: dict date -> wellness row. Refetches the last 2 days, fills gaps up to `days` back."""
-    if os.environ.get("GARMIN_EXPORT_URL") and os.environ.get("GARMIN_EXPORT_TOKEN"):
-        try:
-            return sync_health_api(cache)
-        except Exception as e:
-            print(f"garmin: Health API receiver failed, keeping cached data: {e}")
-            return cache
-    if not (os.environ.get("GARMIN_TOKENS") or os.environ.get("GARMIN_EMAIL")):
-        print("garmin: no credentials, skipping")
+    """cache: dict date -> wellness row. Refetches the last 3 days, fills gaps up to `days` back."""
+    key = os.environ.get("GARMIN_PERSONAL_API_KEY")
+    if not key:
+        print("garmin: no GARMIN_PERSONAL_API_KEY, skipping")
         return cache
+    from garmin_personal_api.auth import PersonalApiAuthenticator
+    from garmin_personal_api.client import GarminPersonalApiClient
+
+    missing = [today - timedelta(days=i) for i in range(days) if (today - timedelta(days=i)).isoformat() not in cache]
+    start = min(missing + [today - timedelta(days=2)])
     try:
-        g = _client()
+        with PersonalApiAuthenticator() as auth:
+            token = auth.obtain_token(key)
+        with GarminPersonalApiClient(token.access_token) as client:
+            fresh = fetch(client, start, today)
     except Exception as e:
-        print(f"garmin: login failed, keeping cached data: {e}")
+        print(f"garmin: Personal API failed, keeping cached data: {e}")
         return cache
-    fetched = 0
-    for i in range(days):
-        d = today - timedelta(days=i)
-        if i < 2 or d.isoformat() not in cache:
-            cache[d.isoformat()] = day(g, d)
-            fetched += 1
-    print(f"garmin: fetched {fetched} days")
+    cache.update(fresh)
+    print(f"garmin: {len(fresh)} days from {start} to {today}")
     return cache
