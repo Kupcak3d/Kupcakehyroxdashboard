@@ -12,9 +12,9 @@ CHUNK_DAYS = 14   # keep each range request small; the API's maximum isn't docum
 # Candidate field names per metric. The Personal API's response schemas aren't
 # published outside Swagger, so match the names Garmin Connect uses elsewhere.
 FIELDS = {
-    "resting_hr": ("restingHeartRate", "restingHeartRateValue", "restingHeartRateInBeatsPerMinute"),
-    "body_battery_high": ("bodyBatteryHighestValue", "bodyBatteryHigh", "highestBodyBattery"),
-    "stress_avg": ("averageStressLevel", "avgStressLevel", "overallStressLevel"),
+    "resting_hr": ("heartRate.restingValue", "restingHeartRate", "restingHeartRateValue", "restingHeartRateInBeatsPerMinute"),
+    "body_battery_high": ("bodyBattery.maxValue", "bodyBatteryHighestValue", "bodyBatteryHigh", "highestBodyBattery"),
+    "stress_avg": ("stress.avgLevel", "averageStressLevel", "avgStressLevel", "overallStressLevel"),
     "hrv": ("lastNightAvg", "lastNightAverage"),
     "hrv_status": ("status", "hrvStatus"),
     "sleep_score": ("overallSleepScore", "sleepScore", "overall", "value"),
@@ -37,18 +37,32 @@ def records(payload):
                     yield from records(v)
 
 
+def scalar(v):
+    if isinstance(v, dict) and isinstance(v.get("value"), (int, float)):
+        return v["value"]
+    if isinstance(v, (int, float, str)) and not isinstance(v, bool):
+        return v
+    return None
+
+
 def find(rec, names, depth=3):
-    """First scalar value under any of `names`, searching nested dicts breadth-first."""
+    """First scalar under any of `names`: dotted names are exact paths, plain names
+    are searched in nested dicts breadth-first."""
+    for n in names:
+        if "." in n:
+            v = rec
+            for part in n.split("."):
+                v = v.get(part) if isinstance(v, dict) else None
+            if scalar(v) is not None:
+                return scalar(v)
+    names = [n for n in names if "." not in n]
     level = [rec]
     for _ in range(depth):
         nxt = []
         for d in level:
             for n in names:
-                v = d.get(n)
-                if isinstance(v, dict) and isinstance(v.get("value"), (int, float)):
-                    return v["value"]
-                if isinstance(v, (int, float, str)) and not isinstance(v, bool):
-                    return v
+                if scalar(d.get(n)) is not None:
+                    return scalar(d.get(n))
             nxt.extend(v for v in d.values() if isinstance(v, dict))
         level = nxt
     return None
@@ -132,7 +146,8 @@ def sync(cache, today, days=45):
     from garmin_personal_api.auth import PersonalApiAuthenticator
     from garmin_personal_api.client import GarminPersonalApiClient
 
-    missing = [today - timedelta(days=i) for i in range(days) if (today - timedelta(days=i)).isoformat() not in cache]
+    missing = [d for d in (today - timedelta(days=i) for i in range(days))
+               if cache.get(d.isoformat(), {}).get("resting_hr") is None]
     start = min(missing + [today - timedelta(days=2)])
     try:
         with PersonalApiAuthenticator() as auth:

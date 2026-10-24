@@ -98,7 +98,8 @@ def test_personal_api_mapping():
 
     class Fake:
         def get_daily_summaries(self, s, e):
-            return [{"calendarDate": "2026-10-22", "restingHeartRate": 49, "bodyBatteryHighestValue": 88}]
+            return [{"calendarDate": "2026-10-22", "heartRate": {"minValue": 45, "restingValue": 49},
+                     "bodyBattery": {"minValue": 20, "maxValue": 88}, "stress": {"avgLevel": 31}}]
 
         def get_daily_sleep_summaries(self, s, e):
             return {"dailySleepSummaries": [{"calendarDate": "2026-10-22", "sleepTimeSeconds": 27000,
@@ -109,5 +110,6 @@ def test_personal_api_mapping():
 
     rows = fetch(Fake(), date(2026, 10, 20), date(2026, 10, 22))
     r = rows["2026-10-22"]
+    assert r["stress_avg"] == 31
     assert (r["resting_hr"], r["body_battery_high"], r["sleep_score"], r["sleep_h"], r["hrv"], r["hrv_status"]) == \
         (49, 88, 81, 7.5, 58, "BALANCED")
