@@ -11,7 +11,7 @@ GitHub Pages.
 
 | Signal | Rule | Source |
 |---|---|---|
-| Garmin readiness < 40, HRV status low/poor, or resting HR 5+ bpm over your 7-day baseline | One low day: a caution on the next hard session. **Two in a row:** the next hard session within 2 days becomes an easy run. | Plan: "If legs feel heavy two days running, swap Tuesday intervals for an easy run." |
+| Garmin HRV under 85% of your 7-day baseline or HRV status low/poor, resting HR 5+ bpm over baseline, or sleep score under 50 | One low day: a caution on the next hard session. **Two in a row:** the next hard session within 2 days becomes an easy run. | Plan: "If legs feel heavy two days running, swap Tuesday intervals for an easy run." |
 | Interval rep pace (Strava laps faster than 5:30/km) | Beat target by 5+ s/km two sessions running → future rep targets 5 s faster. Missed by 8+ s → 5 s slower. Capped at ±10 s from the plan, never in race week. | Keeps Tuesdays hard but achievable |
 | Acute:chronic load ratio | Above 1.5 → next 7 days of easy and long runs trimmed 20%. Above 1.3 → warning. | Standard load management |
 | Weekly km vs plan | Under 80% or over 115% → a note not to chase or overshoot the ramp | Plan's 30 → 40 km ramp |
@@ -38,10 +38,10 @@ issues still count.
    `localhost`. Then run `pip install requests && python scripts/strava_auth.py <client_id> <client_secret>`
    and add the three printed values as repository secrets (Settings → Secrets and variables →
    Actions): `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REFRESH_TOKEN`.
-3. **Garmin** (optional but recommended): `pip install garminconnect && python scripts/garmin_auth.py`,
-   then save the printed token as the `GARMIN_TOKENS` secret. Garmin has no public API, so this
-   uses the unofficial [garminconnect](https://github.com/cyberjunky/python-garminconnect)
-   library. If Garmin changes its login, the dashboard keeps working on Strava alone.
+3. **Garmin:** create a Personal API key at
+   https://connect.garmin.com/app/settings/personalApiToken (pick the 1-year expiry) and save it
+   as the `GARMIN` repository secret. It brings in resting heart rate, HRV, sleep and Body
+   Battery. Garmin emails you a week before the key expires; make a new one and replace the secret.
 4. Actions → **Update dashboard** → **Run workflow**.
 
 ## Privacy

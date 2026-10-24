@@ -80,3 +80,36 @@ def test_issue_form_parsing():
     log = to_log({"number": 7, "body": body, "created_at": "2026-10-23T00:00:00Z"})
     assert log == {"issue": 7, "date": "2026-10-22", "station": "wall_balls", "seconds": 342,
                    "fresh": False, "full_distance": True, "notes": ""}
+
+
+def test_hrv_drop_and_poor_sleep_count_as_low_recovery():
+    base = {f"2026-10-{d}": {"hrv": 60, "resting_hr": 50} for d in range(19, 26)}
+    base["2026-10-26"] = {"hrv": 48, "resting_hr": 50}
+    base["2026-10-27"] = {"hrv": 59, "resting_hr": 50, "sleep_score": 41}
+    res = run(steady_history(), base, today="2026-10-27")
+    tue = next(s for s in res["sessions"] if s["date"] == "2026-10-27")
+    assert tue["kind"] == "easy"
+    assert any("HRV 48" in r for f in res["readiness"] for r in f["reasons"])
+
+
+def test_personal_api_mapping():
+    from datetime import date
+    from hyrox.garmin import fetch
+
+    class Fake:
+        def get_daily_summaries(self, s, e):
+            return [{"calendarDate": "2026-10-22", "heartRate": {"minValue": 45, "restingValue": 49},
+                     "bodyBattery": {"minValue": 20, "maxValue": 88}, "stress": {"avgLevel": 31}}]
+
+        def get_daily_sleep_summaries(self, s, e):
+            return {"dailySleepSummaries": [{"calendarDate": "2026-10-22", "sleepTimeSeconds": 27000,
+                                              "sleepScores": {"overall": {"value": 81}}}]}
+
+        def get_daily_hrv_summaries(self, s, e):
+            return {"hrvSummaries": [{"calendarDate": "2026-10-22", "lastNightAvg": 58, "status": "balanced"}]}
+
+    rows = fetch(Fake(), date(2026, 10, 20), date(2026, 10, 22))
+    r = rows["2026-10-22"]
+    assert r["stress_avg"] == 31
+    assert (r["resting_hr"], r["body_battery_high"], r["sleep_score"], r["sleep_h"], r["hrv"], r["hrv_status"]) == \
+        (49, 88, 81, 7.5, 58, "BALANCED")
