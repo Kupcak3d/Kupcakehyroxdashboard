@@ -29,8 +29,9 @@ function render(d) {
   renderPlan(d);
 
   const src = [];
-  src.push(d.sources.strava ? "Strava ✓" : "Strava not connected");
-  src.push(d.sources.garmin ? "Garmin ✓" : "Garmin not connected");
+  const actSrc = { garmin: "Garmin", strava: "Strava" }[d.sources.activities];
+  src.push(actSrc ? `Workouts from ${actSrc} ✓` : "No workout data yet");
+  src.push(d.sources.garmin ? "Recovery from Garmin ✓" : "Garmin not connected");
   src.push(`${d.sources.station_logs} station logs`);
   $("footer").innerHTML = `Updated ${esc(d.generated_at.replace("T", " "))} · ${src.join(" · ")} · <a href="${esc(d.plan.source)}">Plan doc</a>`;
 }
