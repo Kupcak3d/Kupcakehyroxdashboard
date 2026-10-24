@@ -1,6 +1,6 @@
-// Pixel-art minotaur. Every frame is rasterised from a posed skeleton into a small
+// Pixel-art bison. Every frame is rasterised from a posed skeleton into a small
 // buffer (shapes -> shading -> outlines), then scaled up with crisp pixels.
-// Minotaur.mount(canvas, {mood, action, gear}) starts the loop and returns {set}.
+// Bison.mount(canvas, {mood, action, gear}) starts the loop and returns {set}.
 (() => {
   const W = 96, H = 80, G = 76;          // buffer size, ground line
   const X0 = 36;                          // where he stands
@@ -10,13 +10,19 @@
     return (0xff << 24 | (n & 0xff) << 16 | (n >> 8 & 0xff) << 8 | n >> 16) >>> 0;
   };
   const ramp = (hi, base, sh) => ({ hi: hex(hi), base: hex(base), sh: hex(sh) });
-  // Palette sampled from Jeff's reference sprite.
+  // Bison: shaggy dark wool on the hump, head and upper arms, shorter rusty hide
+  // behind. Sash, bracers and hooves come from Jeff's original reference sprite.
   const C = {
-    fur: ramp("#e09830", "#b87840", "#684028"),
-    furBack: ramp("#a86c3a", "#8a5530", "#4e2e1a"),
-    chest: ramp("#f0b450", "#e09830", "#b87840"),
+    fur: ramp("#c08450", "#8e5c36", "#5a3820"),       // hide
+    furBack: ramp("#8a5c38", "#6a4428", "#42281a"),
+    wool: ramp("#a8784a", "#6e4828", "#3c2414"),
+    woolBack: ramp("#7a5232", "#4e321c", "#2c1a0e"),
+    woolTip: ramp("#c89a64", "#93683e", "#5a3c22"),
+    muzzle: ramp("#9a7a66", "#64493c", "#382820"),
     red: ramp("#e0402a", "#b01800", "#781000"),
-    horn: ramp("#f8f8f8", "#e8c870", "#c99a48"),
+    horn: ramp("#c8c8d0", "#5a5a62", "#2a2a2e"),
+    gold: ramp("#fff0a0", "#e8c040", "#b08a20"),
+    belly: ramp("#d09a60", "#a87044", "#7a4e2c"),
     grey: ramp("#d0d0d0", "#888888", "#555555"),
     hoof: ramp("#5a5a5a", "#303030", "#1a1a1a"),
     volt: ramp("#f6ffb0", "#e8ff3a", "#a8bb10"),
@@ -165,7 +171,7 @@
     return out;
   }
 
-  // ---------- the minotaur ----------
+  // ---------- the bison ----------
 
   const ARM = [8.5, 8], LEG = [9, 8.5];
   const GROUND = G - 2;                    // ankle height when standing
@@ -185,7 +191,7 @@
     [sk.knB, sk.ftB] = ik(sk.hipB, p.footB, LEG[0], LEG[1], p.kneeB || [1, -0.2]);
     sk.neck = add(hip, mul(u, 19));
     sk.headAng = p.lean * 0.6 + (p.tilt || 0);
-    sk.head = add(add(hip, mul(u, 22)), rot([7, -8], sk.headAng));
+    sk.head = add(add(hip, mul(u, 21)), rot([9, -4], sk.headAng));
     return sk;
   }
 
@@ -196,8 +202,9 @@
   }
 
   function arm(sh, el, ha, fur, side, gear, flex) {
-    capsule(sh, el, 4.4, 3.6, fur, "arm" + side);
-    if (flex) ellipse(...add(lerp2(sh, el, 0.5), [0, -2.5 - flex]), 3.5 + flex * 0.4, 2.4 + flex, 0, fur, "arm" + side);
+    const wool = side === "F" ? C.wool : C.woolBack;
+    capsule(sh, el, 4.8, 3.8, wool, "arm" + side);
+    if (flex) ellipse(...add(lerp2(sh, el, 0.5), [0, -2.5 - flex]), 3.5 + flex * 0.4, 2.4 + flex, 0, wool, "arm" + side);
     capsule(el, ha, 3.8, 3.2, fur, "arm" + side);
     capsule(lerp2(el, ha, 0.35), lerp2(el, ha, 0.7), 4.1, 3.7, C.grey, "bracer" + side);
     if (gear.wraps) capsule(lerp2(el, ha, 0.82), lerp2(el, ha, 0.95), 3.5, 3.4, C.volt, "wrap" + side);
@@ -207,40 +214,40 @@
   function head(sk, p, gear) {
     const h = sk.head, A = sk.headAng, at = (v) => add(h, rot(v, A));
     const bounce = p.maneBounce || 0;
-    // back horn sits behind the head
-    hornChain([at([-2, -4]), at([-6, -7]), at([-7, -12]), at([-5, -15])], "hornB");
-    ellipse(...at([-5.5, -1]), 3.4, 2, A - 0.6, C.furBack, "ear");
-    ellipse(h[0], h[1], 6.5, 5.8, A, C.fur, "head");
-    capsule(at([3, 0.5]), at([11, 2.5]), 4.6, 3.9, C.fur, "head");
-    ellipse(...at([11.5, 3]), 3, 2.8, A + 0.2, C.chest, "head");
-    // mane: a red cap with spikes running back down the neck
-    ellipse(...at([-3.5, -3.5]), 4.5, 3.2, A - 0.3, C.red, "mane");
-    const spikes = [[0, -5.5, 0], [-3, -6.5, 1], [-6, -5, 0], [-8, -2, 1], [-8.5, 1.5, 0], [-8, 5, 1]];
-    spikes.forEach(([x, y, alt], i) => {
+    // short hooked horns: the far one sits behind the head
+    hornChain([at([-2, -3]), at([-6, -4.5]), at([-7.5, -8]), at([-6, -10.5])], "hornB");
+    ellipse(...at([-6, 0]), 3, 1.8, A - 0.5, C.woolBack, "ear");
+    // shaggy skull, broad short face, dark muzzle
+    ellipse(h[0], h[1], 7.5, 7, A, C.wool, "head");
+    capsule(at([3.5, 1.5]), at([9.5, 3.5]), 4.8, 4.2, C.muzzle, "face");
+    ellipse(...at([10.5, 3.7]), 3, 2.8, A + 0.2, C.muzzle, "face");
+    // beard hanging under the chin
+    const sway = Math.sin(p.t * 5) * bounce * 0.8;
+    poly([at([-1, 5]), at([8, 7]), at([6 + sway, 11]), at([3.5 + sway, 16]), at([1 + sway, 11])], C.woolTip.base, "beard");
+    // woolly topknot
+    [[-4, -5.5, 3.5], [-1, -6.5, 4.5], [2, -6, 3.5], [-6.5, -3, 3]].forEach(([x, y, len], i) => {
       const base = at([x, y]);
-      const dir = rot([x + 1, y + 1], A), n = Math.hypot(...dir);
-      const d = [dir[0] / n, dir[1] / n];
-      const len = (alt ? 4 : 5.5) + Math.sin(p.t * 6 + i) * bounce;
-      const perp = [-d[1] * 2.4, d[0] * 2.4];
-      poly([add(base, perp), add(base, mul(perp, -1)), add(base, mul(add(d, [-0.35, 0]), len))],
-        alt ? C.red.sh : i < 2 ? C.red.hi : C.red.base, "mane");
+      const dir = rot([x * 0.4, -1], A), n = Math.hypot(...dir), d = [dir[0] / n, dir[1] / n];
+      const perp = [-d[1] * 2.2, d[0] * 2.2];
+      const l = len + Math.sin(p.t * 6 + i) * bounce * 0.6;
+      poly([add(base, perp), add(base, mul(perp, -1)), add(base, mul(d, l))], i % 2 ? C.woolTip.base : C.wool.base, "head");
     });
-    hornChain([at([2.5, -4]), at([7, -6.5]), at([9.5, -11]), at([8.5, -15])], "hornF");
+    hornChain([at([2, -3]), at([6, -4.5]), at([7.5, -8]), at([6, -10.5])], "hornF");
     if (gear.headband) {
       const flap = Math.sin(p.t * 9) * 1.5;
       capsule(at([-7, -1]), at([-11, 1 + flap]), 1.2, 0.8, C.volt, "band");
-      capsule(at([-6, -2]), at([5, -3.5]), 1.5, 1.5, C.volt, "band");
+      capsule(at([-6, -2.5]), at([4, -3.5]), 1.5, 1.5, C.volt, "band");
     }
   }
 
   function hornChain(pts, group) {
-    const r = [2.6, 2.1, 1.5, 0.8];
+    const r = [2.4, 1.9, 1.4, 0.8];
     for (let i = 0; i < pts.length - 1; i++) capsule(pts[i], pts[i + 1], r[i], r[i + 1], C.horn, group);
   }
 
   function face(sk, p) {
     const h = sk.head, A = sk.headAng, at = (v) => add(h, rot(v, A));
-    const e = at([3.5, -1.5]);
+    const e = at([4, -0.5]);
     const ex = Math.round(e[0]), ey = Math.round(e[1]);
     if (p.eye === "closed") {
       px(ex - 1, ey, PUPIL); px(ex, ey, PUPIL); px(ex + 1, ey + 1, PUPIL);
@@ -250,9 +257,10 @@
       if (p.eye === "angry") { px(ex - 1, ey - 2, PUPIL); px(ex, ey - 1, PUPIL); px(ex + 1, ey - 1, PUPIL); }
       if (p.eye === "open") { px(ex - 1, ey - 1, PUPIL); px(ex, ey - 2, PUPIL); px(ex + 1, ey - 2, PUPIL); }
     }
-    const n = at([13.5, 2]);
+    const n = at([12.5, 3]);
+    px(n[0], n[1] + 1, PUPIL);
     px(n[0], n[1], PUPIL);
-    const m = at([10, 5.5]);
+    const m = at([10, 6.5]);
     if (p.mouth === "yawn") {
       for (let i = -1; i <= 1; i++) for (let j = 0; j <= 2; j++) px(m[0] + i, m[1] + j, MOUTH);
       px(m[0], m[1] + 1, hex("#e06070"));
@@ -272,17 +280,24 @@
   function body(sk, p, gear) {
     const { hip, u, lean } = sk, at = (v, k) => add(add(hip, mul(u, k)), rot(v, lean));
     const puff = p.puff || 0;
-    capsule(sk.neck, add(sk.head, rot([-3, 3], sk.headAng)), 6.5, 5.5, C.fur, "body");
     ellipse(...at([0, 0], 6.5), 8.5, 7.5, lean, C.fur, "body");
-    ellipse(...at([1, 0], 15), 12 + puff, 10 + puff * 0.6, lean, C.fur, "body");
-    ellipse(...at([5, 1], 15), 6 + puff * 0.5, 4.6, lean, C.chest, "chest");
-    ellipse(...at([3.5, 0], 6.5), 4, 5, lean, C.chest, "chest");
+    ellipse(...at([3.5, 0], 6.5), 4, 5, lean, C.belly, "belly");
+    // the hump: a big woolly mound over the shoulders, fringed with tufts
+    ellipse(...at([-2, 0], 21), 10 + puff * 0.5, 8, lean - 0.2, C.wool, "body");
+    ellipse(...at([1, 0], 15), 12 + puff, 9.5 + puff * 0.6, lean, C.wool, "body");
+    capsule(sk.neck, add(sk.head, rot([-3, 2], sk.headAng)), 7, 6, C.wool, "body");
+    [[-10, 22], [-7, 27], [-3, 29], [1, 28], [-12, 16], [-12, 10]].forEach(([x, k], i) => {
+      const base = at([x, 0], k), d = rot([x < -9 ? -1 : -0.3, x < -9 ? 0.2 : -1], lean);
+      const perp = [-d[1] * 2.4, d[0] * 2.4], len = 3.5 + (i % 2) + Math.sin(p.t * 6 + i) * (p.maneBounce || 0) * 0.5;
+      poly([add(base, perp), add(base, mul(perp, -1)), add(base, mul(d, len))], i % 2 ? C.woolTip.base : C.wool.base, "body");
+    });
+    ellipse(...at([6, 2], 14), 4.5 + puff * 0.4, 4, lean, C.woolTip, "chest");
     if (gear.bib) {
       poly([at([0, -3], 9), at([8, -3], 9), at([8, 3], 9), at([0, 3], 9)], C.white.base, "bib");
     }
     if (gear.medal) {
       capsule(at([-2, -6], 15), at([3, 2], 10), 0.6, 0.6, C.red, "medal");
-      ellipse(...at([3, 3], 9), 2.2, 2.2, 0, C.horn, "medal");
+      ellipse(...at([3, 3], 9), 2.2, 2.2, 0, C.gold, "medal");
     }
   }
 
@@ -293,7 +308,7 @@
     capsule(at([-6.5, -1]), at([7, -1]), 2.2, 2.2, C.red, "sash");
   }
 
-  function minotaur(p, gear) {
+  function bison(p, gear) {
     const sk = skeleton(p);
     arm(sk.shB, sk.elB, sk.haB, C.furBack, "B", gear, p.flex);
     leg(sk.hipB, sk.knB, sk.ftB, C.furBack, "B");
@@ -631,7 +646,7 @@
     const p = poseAt(t, state);
     const gear = Object.fromEntries((state.gear || []).filter((g) => g.earned).map((g) => [g.key, true]));
     if (state.action === "race") gear.bib = true;
-    const sk = minotaur(p, gear);
+    const sk = bison(p, gear);
     fxBefore(p, sk, t);
     outline();
     face(sk, p);
@@ -664,5 +679,5 @@
     };
   }
 
-  window.Minotaur = { mount, W, H };
+  window.Bison = { mount, W, H };
 })();

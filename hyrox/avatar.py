@@ -1,4 +1,4 @@
-"""The minotaur avatar: today's mood, what he's doing, and the gear he has earned.
+"""The bison avatar: today's mood, what he's doing, and the gear he has earned.
 
 Mood is an even blend of two 0-100 scores:
   readiness  last night's HRV and resting HR against their 7-day baselines, sleep score

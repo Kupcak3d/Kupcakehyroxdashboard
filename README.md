@@ -25,9 +25,9 @@ of Roxzone.
 
 Every change appears under **Why the plan changed** with its reason.
 
-## The minotaur
+## The bison
 
-The pixel minotaur in the header acts out today's session (intervals, sled push, wall balls and
+The pixel bison in the header acts out today's session (intervals, sled push, wall balls and
 burpees, sim, long run, or lounging on rest days), then switches to a pose that shows how
 recovered you are:
 

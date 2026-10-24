@@ -65,7 +65,7 @@ function renderHero(d, cur) {
       }).join("")}</div></div>`).join("");
 }
 
-// ---------- minotaur ----------
+// ---------- bison ----------
 
 const MOODS = ["exhausted", "tired", "ready", "fired_up"];
 const MOOD_LABEL = { exhausted: "Exhausted", tired: "Tired", ready: "Ready", fired_up: "Fired up" };
@@ -76,12 +76,12 @@ const ACTION_LABEL = {
 
 function renderBuddy(d) {
   const a = d.avatar;
-  if (!a || !window.Minotaur) { $("buddy").hidden = true; return; }
+  if (!a || !window.Bison) { $("buddy").hidden = true; return; }
   // ?mood=tired&action=sled previews any combination
   const q = new URLSearchParams(location.search);
   const mood = MOODS.includes(q.get("mood")) ? q.get("mood") : a.mood;
   const action = ACTION_LABEL[q.get("action")] ? q.get("action") : a.action;
-  Minotaur.mount($("buddy-canvas"), { mood, action, gear: a.gear });
+  Bison.mount($("buddy-canvas"), { mood, action, gear: a.gear });
 
   $("buddy").dataset.mood = mood;
   const chip = $("mood-chip");
@@ -94,7 +94,7 @@ function renderBuddy(d) {
     (a.readiness_score != null ? ` · readiness ${a.readiness_score}` : "") + (a.load_score != null ? ` · load ${a.load_score}` : "");
   $("buddy-today").innerHTML = `<b>${ACTION_LABEL[action]}</b>${action === a.action && !["rest", "race"].includes(action) ? ` · ${esc(a.session)}` : ""}`;
   $("gear").innerHTML = a.gear.map((g) => `<li class="${g.earned ? "earned" : ""}" title="${esc(g.note)}">${g.earned ? "✓ " : ""}${esc(g.name)}</li>`).join("");
-  $("buddy-canvas").setAttribute("aria-label", `Minotaur avatar: ${MOOD_LABEL[mood]}, ${ACTION_LABEL[action]}`);
+  $("buddy-canvas").setAttribute("aria-label", `Bison avatar: ${MOOD_LABEL[mood]}, ${ACTION_LABEL[action]}`);
 
   const preview = mood !== a.mood || action !== a.action;
   const lines = preview ? [`Preview: ${MOOD_LABEL[mood].toLowerCase()}, ${ACTION_LABEL[action].toLowerCase()}. Remove ?mood / ?action from the URL to see today.`] : a.lines;

@@ -113,7 +113,7 @@ h2::before { content: ""; width: 4px; height: 16px; background: var(--volt); tra
 .wk.now { background: var(--volt); color: #0a0a0a; box-shadow: 0 0 18px rgba(232, 255, 58, .45); }
 .wk.race { background: repeating-conic-gradient(#f5f5f2 0 25%, #0a0a0a 0 50%) 0 0 / 10px 10px; color: transparent; }
 
-/* ---------- minotaur ---------- */
+/* ---------- bison ---------- */
 
 .hero-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 8px 28px; align-items: end; position: relative; z-index: 1; }
 .hero-left { min-width: 0; }
