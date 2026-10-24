@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from . import garmin, stations, strava
 from .adapt import adapt
+from .avatar import avatar
 from .load import daily_loads, series
 from .plan import ROOT, expand_sessions, load_plan
 
@@ -59,6 +60,7 @@ def main(argv=None):
     load_rows = series(daily_loads(activities, athlete["max_hr"], rest_hr), history_start, today)
 
     result = adapt(plan, sessions, activities, well, logs, load_rows, today)
+    history_days = (today - date.fromisoformat(activities[0]["date"])).days if activities else 0
     recent = {a["id"]: a for a in activities if a["date"] >= (today - timedelta(days=21)).isoformat()}
     out = {
         "generated_at": datetime.now(tz).isoformat(timespec="minutes"),
@@ -67,6 +69,7 @@ def main(argv=None):
         "repo": os.environ.get("GITHUB_REPOSITORY"),
         "sources": {"strava": bool(activities), "garmin": bool(well), "station_logs": len(logs)},
         **result,
+        "avatar": avatar(plan, result["sessions"], well, load_rows, history_days, today),
         "load": load_rows[-56:],
         "wellness": [well[d] for d in sorted(well) if d >= (today - timedelta(days=28)).isoformat()],
         "recent_activities": sorted(recent.values(), key=lambda a: a["start"], reverse=True)[:15],

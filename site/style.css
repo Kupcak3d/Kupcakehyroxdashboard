@@ -97,7 +97,7 @@ h2::before { content: ""; width: 4px; height: 16px; background: var(--volt); tra
 .hero .sub { margin: 18px 0 10px; font-size: 14px; }
 .hero .sub b { color: var(--text-primary); }
 
-.track { display: flex; gap: 6px; }
+.track { display: flex; gap: 6px; margin-top: 6px; }
 .phase { min-width: 0; }
 .phase-name {
   display: block; font: 700 11px/1 var(--display); letter-spacing: .14em; text-transform: uppercase;
@@ -112,6 +112,48 @@ h2::before { content: ""; width: 4px; height: 16px; background: var(--volt); tra
 .wk.past { background: var(--volt-dim); color: var(--volt); }
 .wk.now { background: var(--volt); color: #0a0a0a; box-shadow: 0 0 18px rgba(232, 255, 58, .45); }
 .wk.race { background: repeating-conic-gradient(#f5f5f2 0 25%, #0a0a0a 0 50%) 0 0 / 10px 10px; color: transparent; }
+
+/* ---------- minotaur ---------- */
+
+.hero-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 8px 28px; align-items: end; position: relative; z-index: 1; }
+.hero-left { min-width: 0; }
+.buddy { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 16px; }
+.bubble {
+  position: relative; margin: 0; padding: 8px 12px; min-height: 44px; width: 100%;
+  font: 500 15px/1.25 "Pixelify Sans", var(--display); color: #1b120c;
+  background: #f5ecd6; border: 3px solid #0d0805; border-radius: 6px;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, .45);
+}
+.bubble:empty { visibility: hidden; }
+.bubble::after {
+  content: ""; position: absolute; left: 46%; bottom: -12px; width: 12px; height: 12px;
+  background: #f5ecd6; border-right: 3px solid #0d0805; border-bottom: 3px solid #0d0805;
+  transform: skewX(30deg); clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+.buddy-btn { background: none; border: 0; padding: 0; cursor: pointer; border-radius: 12px; line-height: 0; }
+.buddy-btn:focus-visible { outline: 2px solid var(--volt); outline-offset: 2px; }
+#buddy-canvas { width: 288px; height: 240px; max-width: 100%; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.buddy-meta { width: 100%; display: grid; gap: 6px; }
+.mood-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mood-chip {
+  font: 700 16px/1 "Pixelify Sans", var(--display); text-transform: uppercase; letter-spacing: .06em;
+  padding: 5px 9px; border-radius: 4px; color: #0a0a0a; background: var(--mood, var(--volt));
+}
+.meter { display: flex; gap: 4px; flex: 1; max-width: 140px; }
+.meter i { flex: 1; height: 10px; border-radius: 2px; background: rgba(255, 255, 255, .08); transform: skewX(-12deg); }
+.meter i.on { background: var(--mood, var(--volt)); }
+.buddy-today { margin: 0; font-size: 13px; color: var(--text-secondary); }
+.buddy-today b { color: var(--text-primary); }
+.gear { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.gear li {
+  font: 700 11px/1 var(--display); letter-spacing: .1em; text-transform: uppercase;
+  padding: 5px 7px; border-radius: 4px; border: 1px dashed var(--border); color: var(--text-muted);
+}
+.gear li.earned { border: 1px solid var(--volt); color: var(--volt); }
+.buddy[data-mood="exhausted"] { --mood: var(--critical); }
+.buddy[data-mood="tired"] { --mood: var(--warning); }
+.buddy[data-mood="ready"] { --mood: var(--good); }
+.buddy[data-mood="fired_up"] { --mood: var(--volt); }
 
 /* ---------- layout ---------- */
 
@@ -219,6 +261,10 @@ footer a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .dot { animation: none; }
   .button { transition: none; }
+}
+@media (max-width: 900px) {
+  .hero-body { grid-template-columns: 1fr; }
+  .buddy { margin: 12px auto 4px; max-width: 320px; width: 100%; }
 }
 @media (max-width: 640px) {
   .hero { padding: 20px 16px 18px; border-radius: 16px; }

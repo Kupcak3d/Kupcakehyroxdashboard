@@ -13,6 +13,7 @@ fetch("data.json", { cache: "no-store" }).then((r) => r.json()).then(render).cat
 function render(d) {
   const cur = d.sessions.find((s) => s.date >= d.today) || d.sessions[d.sessions.length - 1];
   renderHero(d, cur);
+  renderBuddy(d);
 
   $("alerts").innerHTML = d.alerts.map((a) =>
     `<div class="alert ${a.level}"><b>${a.level === "serious" ? "⚠ Act" : "△ Note"}</b><span>${esc(a.text)}</span></div>`).join("");
@@ -62,6 +63,50 @@ function renderHero(d, cur) {
         const state = wk < cur.week ? "past" : wk === cur.week ? "now" : "";
         return `<span class="wk ${state}${wk === d.weeks.length ? " race" : ""}" title="Week ${wk}">W${wk}</span>`;
       }).join("")}</div></div>`).join("");
+}
+
+// ---------- minotaur ----------
+
+const MOODS = ["exhausted", "tired", "ready", "fired_up"];
+const MOOD_LABEL = { exhausted: "Exhausted", tired: "Tired", ready: "Ready", fired_up: "Fired up" };
+const ACTION_LABEL = {
+  sprint: "Intervals", jog: "Easy run", sled: "Sleds + strength", skill: "Wall balls + burpees",
+  sim: "Hyrox sim", race: "Race day", rest: "Rest day", recover: "Done for today",
+};
+
+function renderBuddy(d) {
+  const a = d.avatar;
+  if (!a || !window.Minotaur) { $("buddy").hidden = true; return; }
+  // ?mood=tired&action=sled previews any combination
+  const q = new URLSearchParams(location.search);
+  const mood = MOODS.includes(q.get("mood")) ? q.get("mood") : a.mood;
+  const action = ACTION_LABEL[q.get("action")] ? q.get("action") : a.action;
+  Minotaur.mount($("buddy-canvas"), { mood, action, gear: a.gear });
+
+  $("buddy").dataset.mood = mood;
+  const chip = $("mood-chip");
+  chip.textContent = MOOD_LABEL[mood];
+  chip.title = a.factors.length
+    ? a.factors.map((f) => `${f.label} (${f.score}/100)`).join("\n")
+    : "No Garmin or load data yet";
+  $("meter").innerHTML = MOODS.map((m, i) => `<i class="${i <= MOODS.indexOf(mood) ? "on" : ""}"></i>`).join("");
+  $("meter").title = a.score == null ? "No score yet" : `Score ${a.score}/100` +
+    (a.readiness_score != null ? ` · readiness ${a.readiness_score}` : "") + (a.load_score != null ? ` · load ${a.load_score}` : "");
+  $("buddy-today").innerHTML = `<b>${ACTION_LABEL[action]}</b>${action === a.action && !["rest", "race"].includes(action) ? ` · ${esc(a.session)}` : ""}`;
+  $("gear").innerHTML = a.gear.map((g) => `<li class="${g.earned ? "earned" : ""}" title="${esc(g.note)}">${g.earned ? "✓ " : ""}${esc(g.name)}</li>`).join("");
+  $("buddy-canvas").setAttribute("aria-label", `Minotaur avatar: ${MOOD_LABEL[mood]}, ${ACTION_LABEL[action]}`);
+
+  const preview = mood !== a.mood || action !== a.action;
+  const lines = preview ? [`Preview: ${MOOD_LABEL[mood].toLowerCase()}, ${ACTION_LABEL[action].toLowerCase()}. Remove ?mood / ?action from the URL to see today.`] : a.lines;
+  let i = 0, timer = 0;
+  const say = () => { $("bubble").textContent = lines[i % lines.length]; };
+  const auto = () => {
+    clearInterval(timer);
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) timer = setInterval(() => { i++; say(); }, 9000);
+  };
+  say();
+  auto();
+  $("buddy-btn").addEventListener("click", () => { i++; say(); auto(); });
 }
 
 function badges(s) {
