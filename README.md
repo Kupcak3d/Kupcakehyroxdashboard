@@ -33,8 +33,8 @@ recovered you are:
 
 | Mood | Score | Looks like |
 |---|---|---|
-| Exhausted | under 35 | Dozing on his feet, zzz, wall balls fall short |
-| Tired | 35–54 | Slumped, yawning, sweating |
+| Exhausted | under 35 | Hoodie on, dozing on his feet, zzz, wall balls fall short |
+| Tired | 35–54 | Hoodie on, slumped, yawning, sweating |
 | Ready | 55–74 | Standing tall, shaking out his arms |
 | Fired up | 75+ | Flexing, steam from the nostrils |
 

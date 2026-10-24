@@ -11,7 +11,7 @@
   };
   const ramp = (hi, base, sh) => ({ hi: hex(hi), base: hex(base), sh: hex(sh) });
   // Bison: shaggy dark wool on the hump, head and upper arms, shorter rusty hide
-  // behind. Black shorts; bracers and hooves come from Jeff's original sprite.
+  // behind. Black shorts; every other piece of clothing is blue.
   const C = {
     fur: ramp("#c08450", "#8e5c36", "#5a3820"),       // hide
     furBack: ramp("#8a5c38", "#6a4428", "#42281a"),
@@ -24,6 +24,9 @@
     gold: ramp("#fff0a0", "#e8c040", "#b08a20"),
     belly: ramp("#d09a60", "#a87044", "#7a4e2c"),
     blue: ramp("#9ad8ff", "#2f8ae0", "#1a4f96"),
+    blueLight: ramp("#e0f4ff", "#7cc4ff", "#3a86c8"),
+    hoodie: ramp("#6a9cf0", "#2a5cb8", "#173a7a"),
+    hoodieBack: ramp("#4a78cc", "#1e4590", "#102a5a"),
     shorts: ramp("#55555c", "#26262a", "#121214"),
     shortsBack: ramp("#3a3a40", "#1a1a1d", "#0c0c0e"),
     grey: ramp("#d0d0d0", "#888888", "#555555"),
@@ -206,12 +209,14 @@
   }
 
   function arm(sh, el, ha, fur, side, gear, flex) {
-    const wool = side === "F" ? C.wool : C.woolBack;
-    capsule(sh, el, 4.8, 3.8, wool, "arm" + side);
-    if (flex) ellipse(...add(lerp2(sh, el, 0.5), [0, -2.5 - flex]), 3.5 + flex * 0.4, 2.4 + flex, 0, wool, "arm" + side);
+    const sleeve = gear.hoodie ? (side === "F" ? C.hoodie : C.hoodieBack) : null;
+    const upper = sleeve || (side === "F" ? C.wool : C.woolBack);
+    capsule(sh, el, 4.8, 3.8, upper, "arm" + side);
+    if (flex) ellipse(...add(lerp2(sh, el, 0.5), [0, -2.5 - flex]), 3.5 + flex * 0.4, 2.4 + flex, 0, upper, "arm" + side);
     capsule(el, ha, 3.8, 3.2, fur, "arm" + side);
-    capsule(lerp2(el, ha, 0.35), lerp2(el, ha, 0.7), 4.1, 3.7, C.grey, "bracer" + side);
-    if (gear.wraps) capsule(lerp2(el, ha, 0.82), lerp2(el, ha, 0.95), 3.5, 3.4, C.volt, "wrap" + side);
+    if (sleeve) capsule(el, lerp2(el, ha, 0.4), 4.1, 3.8, sleeve, "arm" + side);
+    capsule(lerp2(el, ha, 0.35), lerp2(el, ha, 0.7), 4.1, 3.7, C.blue, "bracer" + side);
+    if (gear.wraps) capsule(lerp2(el, ha, 0.82), lerp2(el, ha, 0.95), 3.5, 3.4, C.blueLight, "wrap" + side);
     ellipse(ha[0], ha[1], 3.4, 3.2, 0, fur, "arm" + side);
   }
 
@@ -296,6 +301,15 @@
       poly([add(base, perp), add(base, mul(perp, -1)), add(base, mul(d, len))], i % 2 ? C.woolTip.base : C.wool.base, "body");
     });
     ellipse(...at([6, 2], 14), 4.5 + puff * 0.4, 4, lean, C.woolTip, "chest");
+    if (gear.hoodie) {
+      // pulled on over the hump on tired days: hood down behind the neck, front pocket
+      ellipse(...at([-2, 0], 20), 10 + puff * 0.5, 7.5, lean - 0.2, C.hoodie, "hoodie");
+      ellipse(...at([1, 0], 15), 12 + puff, 9.5 + puff * 0.6, lean, C.hoodie, "hoodie");
+      ellipse(...at([0, 0], 7.5), 9, 7, lean, C.hoodie, "hoodie");
+      capsule(at([-8, 0], 3), at([8, 0], 3), 2, 2, C.hoodieBack, "hem");
+      ellipse(...at([-7, 0], 25), 5, 3.5, lean - 0.5, C.hoodieBack, "hood");
+      poly([at([1, -3], 9), at([8, -3], 9), at([9, 2], 9), at([0, 2], 9)], C.hoodie.sh, "pocket");
+    }
     if (gear.bib) {
       poly([at([0, -3], 9), at([8, -3], 9), at([8, 3], 9), at([0, 3], 9)], C.white.base, "bib");
     }
@@ -647,6 +661,7 @@
     const p = poseAt(t, state);
     const gear = Object.fromEntries((state.gear || []).filter((g) => g.earned).map((g) => [g.key, true]));
     if (state.action === "race") gear.bib = true;
+    if (state.mood === "tired" || state.mood === "exhausted") gear.hoodie = true;
     const sk = bison(p, gear);
     fxBefore(p, sk, t);
     outline();
