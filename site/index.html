@@ -3,17 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0a">
 <title>Hyrox Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <main class="viz-root">
-  <header class="top">
-    <div>
-      <h1>Hyrox Vancouver</h1>
-      <p class="sub" id="sub">Loading…</p>
+  <header class="hero">
+    <div class="hero-top">
+      <span class="eyebrow"><span class="bolt" aria-hidden="true"></span>Race day countdown</span>
+      <span class="live"><span class="dot"></span>Live</span>
     </div>
-    <div class="countdown"><span id="days">–</span><small>days to race</small></div>
+    <h1>Hyrox <em>Vancouver</em></h1>
+    <div class="hero-main">
+      <div class="countdown" role="timer" aria-label="Time to race day">
+        <div class="unit"><span id="days">–</span><small>Days</small></div>
+        <div class="unit"><span id="hrs">–</span><small>Hrs</small></div>
+        <div class="unit"><span id="mins">–</span><small>Min</small></div>
+        <div class="unit"><span id="secs">–</span><small>Sec</small></div>
+      </div>
+      <div class="goal">
+        <small>Goal</small>
+        <b id="goal">–</b>
+        <span id="goal-meta"></span>
+      </div>
+    </div>
+    <p class="sub" id="sub">Loading…</p>
+    <div class="track" id="track" aria-label="Training block progress"></div>
   </header>
 
   <section id="alerts" class="alerts" aria-live="polite"></section>

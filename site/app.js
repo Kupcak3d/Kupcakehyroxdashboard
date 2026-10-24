@@ -11,11 +11,8 @@ fetch("data.json", { cache: "no-store" }).then((r) => r.json()).then(render).cat
 });
 
 function render(d) {
-  const race = d.plan.race;
-  const days = Math.round((parseDate(race.date) - parseDate(d.today)) / 864e5);
   const cur = d.sessions.find((s) => s.date >= d.today) || d.sessions[d.sessions.length - 1];
-  $("days").textContent = Math.max(0, days);
-  $("sub").textContent = `${race.division} · ${shortDate(race.date)} · target ${race.target} · week ${cur.week} of 10, ${cur.phase}`;
+  renderHero(d, cur);
 
   $("alerts").innerHTML = d.alerts.map((a) =>
     `<div class="alert ${a.level}"><b>${a.level === "serious" ? "⚠ Act" : "△ Note"}</b><span>${esc(a.text)}</span></div>`).join("");
@@ -35,6 +32,36 @@ function render(d) {
   src.push(d.sources.garmin ? "Garmin ✓" : "Garmin not connected");
   src.push(`${d.sources.station_logs} station logs`);
   $("footer").innerHTML = `Updated ${esc(d.generated_at.replace("T", " "))} · ${src.join(" · ")} · <a href="${esc(d.plan.source)}">Plan doc</a>`;
+}
+
+// ---------- hero ----------
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+function renderHero(d, cur) {
+  const race = d.plan.race;
+  // Count down to the start of race day in Vancouver (PST in December).
+  const start = new Date(race.date + "T00:00:00-08:00").getTime();
+  const tick = () => {
+    const ms = Math.max(0, start - Date.now());
+    $("days").textContent = Math.floor(ms / 864e5);
+    $("hrs").textContent = pad2(Math.floor(ms / 36e5) % 24);
+    $("mins").textContent = pad2(Math.floor(ms / 6e4) % 60);
+    $("secs").textContent = pad2(Math.floor(ms / 1e3) % 60);
+  };
+  tick();
+  setInterval(tick, 1000);
+
+  $("goal").textContent = race.target.replace(/^0/, "");
+  $("goal-meta").textContent = `${race.division} · ${shortDate(race.date)}`;
+  $("sub").innerHTML = `Week <b>${cur.week}</b> of ${d.weeks.length} · <b>${esc(cur.phase)}</b> phase`;
+
+  $("track").innerHTML = d.plan.phases.map((p, pi) =>
+    `<div class="phase p${pi}" style="flex:${p.weeks.length}"><span class="phase-name">${esc(p.name)}</span><div class="weeks">${
+      p.weeks.map((wk) => {
+        const state = wk < cur.week ? "past" : wk === cur.week ? "now" : "";
+        return `<span class="wk ${state}${wk === d.weeks.length ? " race" : ""}" title="Week ${wk}">W${wk}</span>`;
+      }).join("")}</div></div>`).join("");
 }
 
 function badges(s) {
