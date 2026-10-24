@@ -21,6 +21,9 @@
     muzzle: ramp("#9a7a66", "#64493c", "#382820"),
     red: ramp("#e0402a", "#b01800", "#781000"),
     horn: ramp("#c8c8d0", "#5a5a62", "#2a2a2e"),
+    chair: ramp("#c86a62", "#8e3a36", "#5a2022"),
+    chairDark: ramp("#7a3430", "#58221f", "#361414"),
+    book: ramp("#f0a040", "#d06a20", "#8a3a10"),
     gold: ramp("#fff0a0", "#e8c040", "#b08a20"),
     belly: ramp("#d09a60", "#a87044", "#7a4e2c"),
     blue: ramp("#9ad8ff", "#2f8ae0", "#1a4f96"),
@@ -328,6 +331,7 @@
 
   function bison(p, gear) {
     const sk = skeleton(p);
+    if (p.propFirst) p.propFirst(sk);
     arm(sk.shB, sk.elB, sk.haB, C.furBack, "B", gear, p.flex);
     leg(sk.hipB, sk.knB, sk.ftB, C.furBack, "B");
     if (p.propBehind) p.propBehind(sk);
@@ -548,6 +552,65 @@
     return p;
   }
 
+  // Rest day: kicked back in a recliner. Rested, he reads and every so often nods
+  // off; tired or exhausted, he's out cold with the book on his chest.
+  function recliner(t, mood) {
+    const p = base(mood, t);
+    const asleep = mood === "exhausted" || mood === "tired" || (t % 14) > 9;
+    const breathe = Math.sin(t * (asleep ? 1.3 : 2));
+    p.hip = [X0 + 2, G - 13];
+    p.lean = -0.4;
+    p.footF = [X0 + 20, G - 12];
+    p.footB = [X0 + 22, G - 13];
+    p.kneeF = p.kneeB = [0.2, -1];
+    p.puff = breathe * 0.4;
+    const sk = skeleton({ ...p, handF: [0, 0], handB: [0, 0] });
+    let book;
+    if (asleep) {
+      p.tilt = 0.15 + breathe * 0.05;
+      p.eye = "closed";
+      p.mouth = "";
+      p.fx = ["zzz"];
+      book = add(p.hip, [8, -5]);                           // open on his belly
+      p.handF = add(book, [-1, 2]);
+      p.handB = add(book, [2, 1]);
+    } else {
+      p.tilt = 0.55;                                         // looking down at the page
+      p.eye = "open";
+      p.mouth = "";
+      p.fx = [];
+      book = add(sk.head, [9, 12 + Math.sin(t * 1.5) * 0.5]);
+      p.handF = add(book, [-2, 2]);
+      p.handB = add(book, [2, 1.5]);
+    }
+    p.elbowF = p.elbowB = [0, 1];
+    const flip = !asleep && (t % 4) < 0.35;                  // turning a page
+    const chairX = X0 + 2;
+    p.propFirst = () => {
+      // backrest reclined behind him, then seat and footrest, legs underneath
+      poly([[chairX - 12, G - 10], [chairX - 3, G - 12], [chairX - 15, G - 44], [chairX - 25, G - 40]], C.chair.base, "chairBack");
+      ellipse(chairX - 20, G - 42, 6, 4, -0.4, C.chair, "chairBack");
+      capsule([chairX - 10, G - 10], [chairX + 8, G - 10], 4, 4, C.chair, "seat");
+      capsule([chairX + 8, G - 11], [chairX + 21, G - 12], 2.4, 2.4, C.chair, "footrest");
+      capsule([chairX - 8, G - 6], [chairX - 8, G], 1.4, 1.4, C.chairDark, "chairLeg");
+      capsule([chairX + 6, G - 6], [chairX + 6, G], 1.4, 1.4, C.chairDark, "chairLeg");
+    };
+    p.propMid = () => {
+      // near armrest sits in front of his body, under his arm
+      capsule([chairX - 9, G - 15], [chairX + 5, G - 15], 3, 3, C.chair, "armrest");
+      capsule([chairX - 7, G - 13], [chairX - 7, G - 6], 2.6, 2.6, C.chairDark, "armrest");
+    };
+    p.propFront = () => {
+      const tilt = asleep ? -0.2 : -0.5;
+      const at = (v) => add(book, rot(v, tilt));
+      poly([at([-4, -2]), at([0, -1]), at([0, 3]), at([-4, 2])], C.white.base, "page");
+      poly([at([0, -1]), at([4, -2]), at([4, 2]), at([0, 3])], flip ? C.white.sh : C.white.base, "page2");
+      capsule(at([-4, 2.5]), at([0, 3.5]), 0.8, 0.8, C.book, "cover");
+      capsule(at([0, 3.5]), at([4, 2.5]), 0.8, 0.8, C.book, "cover");
+    };
+    return p;
+  }
+
   // What he does on each kind of day. Workouts alternate with a mood pose so you
   // can read both at a glance.
   const WORKOUT = {
@@ -557,7 +620,7 @@
     skill: (t, m) => ((t % 12) < 6 ? wallball(t, m) : burpee(t, m)),
     sim: (t, m) => [(x) => run(x, m, true), (x) => sled(x, m), (x) => wallball(x, m)][Math.floor(t / 4) % 3](t),
     race: moodPose,
-    rest: (t, m) => sitting(t, m, false),
+    rest: recliner,
     recover: (t, m) => sitting(t, m, true),
   };
   const CYCLE = { work: 7.5, mood: 3.5 };
@@ -568,7 +631,7 @@
     if (state.only === "mood") return moodPose(t, state.mood);
     const c = t % (CYCLE.work + CYCLE.mood);
     if (c < CYCLE.work) return work(t, state.mood);
-    if (["rest", "recover"].includes(state.action) && state.mood !== "fired_up") return work(t, state.mood);
+    if (state.action === "rest" || (state.action === "recover" && state.mood !== "fired_up")) return work(t, state.mood);
     return moodPose(t, state.mood);
   }
 

@@ -28,7 +28,7 @@ Every change appears under **Why the plan changed** with its reason.
 ## The bison
 
 The pixel bison in the header acts out today's session (intervals, sled push, wall balls and
-burpees, sim, long run, or lounging on rest days), then switches to a pose that shows how
+burpees, sim, long run, or reading and napping in his recliner on rest days), then switches to a pose that shows how
 recovered you are:
 
 | Mood | Score | Looks like |

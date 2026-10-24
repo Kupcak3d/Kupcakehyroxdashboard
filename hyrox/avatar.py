@@ -124,7 +124,7 @@ def lines(mood, action, session, factors, gear_rows, week, total_weeks, plan_rac
     elif action == "recover":
         out.append(f"{title} is done. Refuel and put the feet up.")
     elif action == "rest" or not session:
-        out.append("Rest day. Walk, stretch, eat, sleep. That's where the gains land.")
+        out.append("Rest day. Feet up, a good book, maybe a nap. That's where the gains land.")
     elif hard and mood in ("exhausted", "tired"):
         out.append(f"Today is {title}, but my legs are toast. Cut reps if HR drifts.")
     else:
