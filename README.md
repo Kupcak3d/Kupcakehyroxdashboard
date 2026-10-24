@@ -25,6 +25,27 @@ of Roxzone.
 
 Every change appears under **Why the plan changed** with its reason.
 
+## The bison
+
+The pixel bison in the header acts out today's session (intervals, sled push, wall balls and
+burpees, sim, long run, or reading and napping in his recliner on rest days), then switches to a pose that shows how
+recovered you are:
+
+| Mood | Score | Looks like |
+|---|---|---|
+| Exhausted | under 35 | Hoodie on, dozing on his feet, zzz, wall balls fall short |
+| Tired | 35–54 | Hoodie on, slumped, yawning, sweating |
+| Ready | 55–74 | Standing tall, shaking out his arms |
+| Fired up | 75+ | Flexing, steam from the nostrils |
+
+The score (0–100) is an even blend of **readiness** (last night's HRV and resting HR against
+their 7-day baselines, sleep score, Body Battery) and **load** (acute:chronic ratio and form).
+Load only counts after 3 weeks of activity history. Hover the mood chip to see each factor.
+Gear unlocks with the plan: headband in week 2, wrist wraps in week 4, race bib in week 8, but
+only while at least 70% of past sessions are done. Click him for another tip. To preview any
+combination, add `?mood=tired&action=sled` to the URL (moods: `exhausted`, `tired`, `ready`,
+`fired_up`; actions: `sprint`, `jog`, `sled`, `skill`, `sim`, `race`, `rest`, `recover`).
+
 ## Logging station results
 
 Click **Log a result** on the dashboard. It opens a short GitHub issue form, and submitting it
