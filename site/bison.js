@@ -11,7 +11,7 @@
   };
   const ramp = (hi, base, sh) => ({ hi: hex(hi), base: hex(base), sh: hex(sh) });
   // Bison: shaggy dark wool on the hump, head and upper arms, shorter rusty hide
-  // behind. Sash, bracers and hooves come from Jeff's original reference sprite.
+  // behind. Black shorts; bracers and hooves come from Jeff's original sprite.
   const C = {
     fur: ramp("#c08450", "#8e5c36", "#5a3820"),       // hide
     furBack: ramp("#8a5c38", "#6a4428", "#42281a"),
@@ -23,6 +23,8 @@
     horn: ramp("#c8c8d0", "#5a5a62", "#2a2a2e"),
     gold: ramp("#fff0a0", "#e8c040", "#b08a20"),
     belly: ramp("#d09a60", "#a87044", "#7a4e2c"),
+    shorts: ramp("#55555c", "#26262a", "#121214"),
+    shortsBack: ramp("#3a3a40", "#1a1a1d", "#0c0c0e"),
     grey: ramp("#d0d0d0", "#888888", "#555555"),
     hoof: ramp("#5a5a5a", "#303030", "#1a1a1a"),
     volt: ramp("#f6ffb0", "#e8ff3a", "#a8bb10"),
@@ -197,6 +199,7 @@
 
   function leg(hp, kn, ft, fur, side) {
     capsule(hp, kn, 5.2, 4, fur, "leg" + side);
+    capsule(hp, lerp2(hp, kn, 0.55), 5.8, 5, side === "F" ? C.shorts : C.shortsBack, "shorts" + side);
     capsule(kn, ft, 3.8, 2.8, fur, "leg" + side);
     ellipse(ft[0] + 1.5, ft[1] + 0.6, 3.2, 2, 0, C.hoof, "hoof" + side);
   }
@@ -303,9 +306,9 @@
 
   function loin(sk, p) {
     const { hip, lean } = sk, at = (v) => add(hip, rot(v, lean));
-    const [fx, fy] = p.flap || [4 + (p.sway || 0), 12];
-    poly([at([1, -1]), at([8, -1]), at([fx + 2, fy - 1]), at([fx, fy + 1]), at([fx - 3, fy - 1])], C.red.base, "loin");
-    capsule(at([-6.5, -1]), at([7, -1]), 2.2, 2.2, C.red, "sash");
+    // black shorts: seat over the hips, legs are drawn with each thigh
+    ellipse(...at([0.5, 2]), 8.5, 4.5, lean, C.shorts, "shortsF");
+    capsule(at([-7, -1]), at([7.5, -1]), 2, 2, C.shorts, "waist");
   }
 
   function bison(p, gear) {
@@ -401,7 +404,6 @@
     p.handF = add(sk.shF, [-Math.sin(ph) * swing + 3, sprint ? 9 : 11]);
     p.handB = add(sk.shB, [Math.sin(ph) * swing + 3, sprint ? 9 : 11]);
     p.elbowF = p.elbowB = [-1, 0.5];
-    p.sway = -Math.cos(ph) * 1.5;
     p.maneBounce = 1;
     p.scroll = (sprint ? 40 : 22) * sp;
     p.fx = ["dust", ...(sprint ? ["speed"] : [])];
@@ -425,7 +427,6 @@
     p.handF = [sledX + 2, G - 21];
     p.handB = [sledX + 5, G - 22];
     p.elbowF = p.elbowB = [0, 1];
-    p.sway = -2;
     p.scroll = 9 * sp * sp;
     p.fx = ["dust", ...(mood === "fired_up" ? ["steam"] : []), ...(sp < 1 ? ["sweat"] : [])];
     p.dustFeet = [p.footF, p.footB];
@@ -505,7 +506,6 @@
     p.footF = [X0 + 13, GROUND];
     p.footB = [X0 + 16, GROUND];
     p.kneeF = p.kneeB = [0.3, -1];
-    p.flap = [12, 2];
     p.tilt = -0.05 + SLUMP[mood];
     const sk = skeleton({ ...p, handF: [0, 0], handB: [0, 0] });
     p.handB = [X0 - 12, G - 3];
