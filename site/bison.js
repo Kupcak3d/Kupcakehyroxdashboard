@@ -23,6 +23,7 @@
     horn: ramp("#c8c8d0", "#5a5a62", "#2a2a2e"),
     gold: ramp("#fff0a0", "#e8c040", "#b08a20"),
     belly: ramp("#d09a60", "#a87044", "#7a4e2c"),
+    blue: ramp("#9ad8ff", "#2f8ae0", "#1a4f96"),
     shorts: ramp("#55555c", "#26262a", "#121214"),
     shortsBack: ramp("#3a3a40", "#1a1a1d", "#0c0c0e"),
     grey: ramp("#d0d0d0", "#888888", "#555555"),
@@ -238,8 +239,8 @@
     hornChain([at([2, -3]), at([6, -4.5]), at([7.5, -8]), at([6, -10.5])], "hornF");
     if (gear.headband) {
       const flap = Math.sin(p.t * 9) * 1.5;
-      capsule(at([-7, -1]), at([-11, 1 + flap]), 1.2, 0.8, C.volt, "band");
-      capsule(at([-6, -2.5]), at([4, -3.5]), 1.5, 1.5, C.volt, "band");
+      capsule(at([-7, -1]), at([-11, 1 + flap]), 1.2, 0.8, C.blue, "band");
+      capsule(at([-6, -2.5]), at([4, -3.5]), 1.5, 1.5, C.blue, "band");
     }
   }
 
