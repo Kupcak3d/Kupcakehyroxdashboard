@@ -1,4 +1,4 @@
-"""Daily recovery data from Garmin's official Personal API.
+"""Recovery data and activities from Garmin's official Personal API.
 
 Create a key at https://connect.garmin.com/app/settings/personalApiToken and store it
 as the `Garmin` repository secret (exposed to the build as GARMIN_PERSONAL_API_KEY).
@@ -137,26 +137,104 @@ def fetch(client, start, end):
     return {d: finish(r) for d, r in rows.items()}
 
 
-def sync(cache, today, days=45):
-    """cache: dict date -> wellness row. Refetches the last 3 days, fills gaps up to `days` back."""
-    key = os.environ.get("GARMIN_PERSONAL_API_KEY")
-    if not key:
-        print("garmin: no GARMIN_PERSONAL_API_KEY, skipping")
-        return cache
-    from garmin_personal_api.auth import PersonalApiAuthenticator
-    from garmin_personal_api.client import GarminPersonalApiClient
+# Garmin activity type keys -> the Strava-style sport names the rest of the code uses.
+SPORTS = {
+    "running": "Run", "street_running": "Run", "track_running": "Run", "treadmill_running": "Run",
+    "indoor_running": "Run", "virtual_run": "VirtualRun", "trail_running": "TrailRun",
+    "strength_training": "WeightTraining", "indoor_rowing": "Rowing", "rowing": "Rowing",
+    "hiit": "Workout", "indoor_cardio": "Workout", "fitness_equipment": "Workout",
+    "cycling": "Ride", "indoor_cycling": "Ride", "walking": "Walk", "hiking": "Walk",
+}
 
-    missing = [d for d in (today - timedelta(days=i) for i in range(days))
-               if cache.get(d.isoformat(), {}).get("resting_hr") is None]
-    start = min(missing + [today - timedelta(days=2)])
-    try:
+
+def normalize_activity(a):
+    type_key = ((a.get("activityType") or {}).get("typeKey") or "other").lower()
+    start = str(a.get("startTimeLocal") or "").replace(" ", "T")
+    moving = a.get("movingDuration") or a.get("duration") or 0
+    return {
+        "id": f"g{a['activityId']}",
+        "garmin_id": a["activityId"],
+        "source": "garmin",
+        "date": start[:10],
+        "start": start,
+        "sport": SPORTS.get(type_key, type_key),
+        "name": a.get("activityName") or "",
+        "distance_km": round((a.get("distance") or 0) / 1000, 2),
+        "moving_s": int(moving),
+        "avg_hr": a.get("averageHR"),
+        "max_hr": a.get("maxHR"),
+        "suffer_score": None,
+    }
+
+
+def laps_from(payload):
+    """Laps from an activity's splits response, in the shape adapt.py expects."""
+    laps = (payload or {}).get("lapDTOs") if isinstance(payload, dict) else payload
+    out = []
+    for l in laps or []:
+        dist = l.get("distance") or 0
+        secs = l.get("movingDuration") or l.get("duration") or 0
+        if dist and secs:
+            out.append({"distance_m": dist, "moving_s": secs, "avg_hr": l.get("averageHR")})
+    return out
+
+
+def sync_activities(client, cache, since, today, interval_dates):
+    new, start = [], 0
+    while True:
+        page = client.search_activities(start=start, limit=100, start_date=since, end_date=today)
+        if not page:
+            break
+        new.extend(page)
+        if len(page) < 100:
+            break
+        start += 100
+    if new and "activityType" not in new[0]:
+        print(f"garmin: activity records have unexpected fields: {sorted(new[0])}")
+    for raw in new:
+        a = normalize_activity(raw)
+        a["laps"] = (cache.get(a["id"]) or {}).get("laps")
+        cache[a["id"]] = a
+    lap_failures = 0
+    for a in cache.values():
+        if a["sport"] in ("Run", "TrailRun", "VirtualRun") and a["date"] in interval_dates and a.get("laps") is None:
+            try:
+                a["laps"] = laps_from(client.get(f"/activity-service/activity/{a['garmin_id']}/splits"))
+            except Exception as e:
+                lap_failures += 1
+                if lap_failures == 1:
+                    print(f"garmin: lap splits unavailable ({e}); interval paces will be skipped")
+    print(f"garmin: {len(new)} activities since {since}, {len(cache)} cached")
+    return cache
+
+
+def client_session():
+    """Context manager yielding a Personal API client, or None without a key."""
+    from contextlib import contextmanager
+
+    @contextmanager
+    def session():
+        key = os.environ.get("GARMIN_PERSONAL_API_KEY")
+        if not key:
+            print("garmin: no GARMIN_PERSONAL_API_KEY, skipping")
+            yield None
+            return
+        from garmin_personal_api.auth import PersonalApiAuthenticator
+        from garmin_personal_api.client import GarminPersonalApiClient
+
         with PersonalApiAuthenticator() as auth:
             token = auth.obtain_token(key)
         with GarminPersonalApiClient(token.access_token) as client:
-            fresh = fetch(client, start, today)
-    except Exception as e:
-        print(f"garmin: Personal API failed, keeping cached data: {e}")
-        return cache
+            yield client
+    return session()
+
+
+def sync(client, cache, today, days=45):
+    """cache: dict date -> wellness row. Refetches the last 3 days, fills gaps up to `days` back."""
+    missing = [d for d in (today - timedelta(days=i) for i in range(days))
+               if cache.get(d.isoformat(), {}).get("resting_hr") is None]
+    start = min(missing + [today - timedelta(days=2)])
+    fresh = fetch(client, start, today)
     cache.update(fresh)
     coverage = {m: sum(r.get(m) is not None for r in fresh.values())
                 for m in ("resting_hr", "hrv", "hrv_status", "sleep_score", "sleep_h", "body_battery_high")}

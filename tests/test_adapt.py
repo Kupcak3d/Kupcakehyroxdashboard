@@ -113,3 +113,26 @@ def test_personal_api_mapping():
     assert r["stress_avg"] == 31
     assert (r["resting_hr"], r["body_battery_high"], r["sleep_score"], r["sleep_h"], r["hrv"], r["hrv_status"]) == \
         (49, 88, 81, 7.5, 58, "BALANCED")
+
+
+def test_garmin_activities_normalize_and_laps():
+    from datetime import date
+    from hyrox.garmin import sync_activities
+
+    class Fake:
+        def search_activities(self, start, limit, start_date, end_date):
+            return [{"activityId": 11, "activityName": "Intervals", "startTimeLocal": "2026-10-20 07:05:00",
+                     "activityType": {"typeKey": "running"}, "distance": 10000.0, "duration": 3100.5,
+                     "movingDuration": 3050.0, "averageHR": 152, "maxHR": 178},
+                    {"activityId": 12, "startTimeLocal": "2026-10-21 18:00:00",
+                     "activityType": {"typeKey": "strength_training"}, "duration": 3900.0}]
+
+        def get(self, path):
+            assert path == "/activity-service/activity/11/splits"
+            return {"lapDTOs": [{"distance": 1200.0, "movingDuration": 352.0, "averageHR": 170}]}
+
+    acts = sync_activities(Fake(), {}, date(2026, 9, 1), date(2026, 10, 23), {"2026-10-20"})
+    run_, lift = acts["g11"], acts["g12"]
+    assert (run_["sport"], run_["date"], run_["distance_km"], run_["moving_s"]) == ("Run", "2026-10-20", 10.0, 3050)
+    assert run_["laps"] == [{"distance_m": 1200.0, "moving_s": 352.0, "avg_hr": 170}]
+    assert (lift["sport"], lift["distance_km"], lift["laps"]) == ("WeightTraining", 0.0, None)
