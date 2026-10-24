@@ -113,6 +113,7 @@ function badges(s) {
   const b = [];
   if (STATUS[s.status]) b.push(`<span class="badge ${s.status}">${s.status}</span>`);
   if (s.adjusted || s.adjusted_pace) b.push(`<span class="badge adjusted">adjusted</span>`);
+  if (s.moved) b.push(`<span class="badge adjusted">moved</span>`);
   return b.join(" ");
 }
 

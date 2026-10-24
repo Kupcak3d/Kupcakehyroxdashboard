@@ -35,8 +35,24 @@ def phase_for(plan, week):
     return None
 
 
+def short(d):
+    return f"{d:%a} {d:%b} {d.day}"
+
+
+def apply_swaps(plan, sessions):
+    """Swap the sessions on each pair of dates in plan["swaps"] (either day may be empty)."""
+    for sw in plan.get("swaps", []):
+        a, b = sw["dates"]
+        for s in sessions:
+            if s["date"] in (a, b):
+                orig = date.fromisoformat(s["date"])
+                s["date"] = b if s["date"] == a else a
+                s.setdefault("notes", []).append(f"Moved from {short(orig)}" + (f": {sw['note']}" if sw.get("note") else ""))
+                s["moved"] = True
+
+
 def expand_sessions(plan):
-    """Every planned session with a concrete date, sorted by date."""
+    """Every planned session with a concrete date, after swaps, sorted by date."""
     out = []
     for wk in plan["weeks"]:
         tue = date.fromisoformat(wk["tuesday"])
@@ -49,6 +65,7 @@ def expand_sessions(plan):
                 "phase": phase_for(plan, wk["week"]),
                 "hard": s["kind"] in HARD_KINDS,
             })
+    apply_swaps(plan, out)
     return sorted(out, key=lambda s: s["date"])
 
 

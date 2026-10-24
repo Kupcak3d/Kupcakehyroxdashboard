@@ -113,3 +113,11 @@ def test_personal_api_mapping():
     assert r["stress_avg"] == 31
     assert (r["resting_hr"], r["body_battery_high"], r["sleep_score"], r["sleep_h"], r["hrv"], r["hrv_status"]) == \
         (49, 88, 81, 7.5, 58, "BALANCED")
+
+
+def test_swaps_move_sessions_between_days():
+    by_date = {s["date"]: s for s in expand_sessions(PLAN)}
+    assert by_date["2026-10-22"]["kind"] == "sim"
+    sat = by_date["2026-10-24"]
+    assert sat["kind"] == "easy_skill" and sat["moved"]
+    assert sat["notes"][0].startswith("Moved from Thu Oct 22")

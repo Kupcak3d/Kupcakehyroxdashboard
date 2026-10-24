@@ -72,6 +72,18 @@ show your training and recovery numbers, and anyone with its URL can see them.
 
 ## Changing the plan
 
+**Swapping two days** (for example, doing Saturday's sim on Thursday): add the pair of dates to
+`swaps` at the top of `plan/plan.json` and commit. You can do it in the GitHub web editor.
+
+```json
+"swaps": [
+  { "dates": ["2026-10-22", "2026-10-24"], "note": "Did the sim Thursday" }
+]
+```
+
+Either date can be a rest day, which simply moves the session. Both days show a "moved" badge.
+
+
 Edit `plan/plan.json` (sessions, paces, `run_km`, station targets) and push. Adaptation
 thresholds are constants at the top of `hyrox/adapt.py`.
 
