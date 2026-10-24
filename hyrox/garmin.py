@@ -54,8 +54,18 @@ def find(rec, names, depth=3):
     return None
 
 
+def key_names(rec, prefix="", depth=2):
+    """Field names in a record (never values), for diagnosing an unmapped schema."""
+    out = []
+    for k, v in rec.items():
+        out.append(prefix + k)
+        if isinstance(v, dict) and depth > 1:
+            out.extend(key_names(v, prefix + k + ".", depth - 1))
+    return out
+
+
 def merge(rows, payload, metrics, label):
-    n = 0
+    n, unmapped = 0, set()
     for rec in records(payload):
         d = next(str(rec[k])[:10] for k in DATE_KEYS if k in rec)
         row = rows.setdefault(d, {"date": d})
@@ -63,6 +73,10 @@ def merge(rows, payload, metrics, label):
             v = find(rec, FIELDS[m])
             if v is not None:
                 row[m] = v
+            else:
+                unmapped.add(m)
+        if n == 0 and unmapped:
+            print(f"garmin: {label} record has no {sorted(unmapped)}; fields: {key_names(rec)}")
         n += 1
     if n == 0:
         # Log the response's shape (key names only, never values) so the mapping can be fixed.
