@@ -159,12 +159,32 @@ function renderTiles(d) {
     ["Form", l.tsb ?? "–", l.tsb == null ? "" : l.tsb < -20 ? "Heavy fatigue" : l.tsb < -5 ? "Training hard (normal)" : "Fresh"],
     ["Load ratio", l.acwr ?? "–", "Acute:chronic. Aim 0.8–1.3"],
     ["Readiness", w.readiness ?? "–", w.date ? `HRV ${w.hrv ?? "–"} · sleep ${w.sleep_score ?? "–"} · RHR ${w.resting_hr ?? "–"}` : "Connect Garmin"],
+    vo2Tile(d.vo2max || []),
   ];
   $("tiles").innerHTML = tiles.map(([label, value, foot]) =>
     `<div class="tile"><div class="label">${label}</div><div class="value">${esc(value)}</div><div class="foot">${foot}</div></div>`).join("");
 }
 
 // ---------- charts ----------
+
+function vo2Tile(v) {
+  const last = v[v.length - 1];
+  if (!last) return ["VO2 max", "–", "Appears after your next outdoor run with Garmin"];
+  // Compare with the latest reading at least 4 weeks before the current one.
+  const base = [...v].reverse().find((r) => r.date <= addDays(last.date, -28));
+  const diff = base ? Math.round((last.value - base.value) * 10) / 10 : null;
+  const change = diff == null ? "" : diff === 0 ? "No change vs 4 wks ago · "
+    : `<span class="${diff > 0 ? "ok" : "bad"}">${diff > 0 ? "+" : "−"}${Math.abs(diff)}</span> vs 4 wks ago · `;
+  return ["VO2 max", last.value, `${change}${shortDate(last.date)}${sparkline(v.map((r) => r.value))}`];
+}
+
+function sparkline(vals) {
+  if (vals.length < 2) return "";
+  const w = 160, h = 28, lo = Math.min(...vals) - 0.5, hi = Math.max(...vals) + 0.5;
+  const pts = vals.map((y, i) => `${(i / (vals.length - 1)) * w},${h - ((y - lo) / (hi - lo)) * h}`);
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="VO2 max trend, last 12 weeks">
+    <polyline points="${pts.join(" ")}" /></svg>`;
+}
 
 const tip = $("tip");
 function showTip(e, html) {
