@@ -158,17 +158,28 @@ def test_garmin_activities_normalize_and_laps():
     assert (lift["sport"], lift["distance_km"], lift["laps"]) == ("WeightTraining", 0.0, None)
 
 
-def test_vo2max_form_logs_feed_the_series():
-    from hyrox.build import vo2max_series
+def test_vo2max_form_parsing():
     from hyrox.stations import to_vo2
 
-    issue = lambda n, body, created: {"number": n, "body": body, "created_at": created}
-    logs = [l for l in [
-        to_vo2(issue(1, "### VO2 max\n\n51\n\n### Date\n\n2026-09-20", "2026-09-20T00:00:00Z")),
-        to_vo2(issue(2, "### VO2 max\n\n52.4\n\n### Date\n\n_No response_", "2026-10-27T00:00:00Z")),
-        to_vo2(issue(3, "### VO2 max\n\nfifty\n\n### Date\n\n_No response_", "2026-10-27T00:00:00Z")),
-        to_vo2(issue(4, "### VO2 max\n\n47\n\n### Date\n\n2026-06-01", "2026-06-01T00:00:00Z")),
-    ] if l]
-    assert logs[1] == {"issue": 2, "date": "2026-10-27", "value": 52.4}
-    assert vo2max_series(logs, date(2026, 10, 27)) == [
-        {"date": "2026-09-20", "value": 51.0}, {"date": "2026-10-27", "value": 52.4}]
+    issue = lambda n, body: {"number": n, "body": body, "created_at": "2026-10-27T00:00:00Z"}
+    assert to_vo2(issue(2, "### VO2 max\n\n52.4\n\n### Date\n\n_No response_")) == \
+        {"issue": 2, "date": "2026-10-27", "value": 52.4}
+    assert to_vo2(issue(3, "### VO2 max\n\nfifty\n\n### Date\n\n_No response_")) is None
+
+
+def test_vo2max_estimate_from_runs_calibrated_to_watch():
+    from hyrox import vo2
+
+    def easy(d, hr=145, pace_s=390, km=8):
+        return {"date": d, "start": d + "T07:00", "sport": "Run", "distance_km": km,
+                "moving_s": pace_s * km, "avg_hr": hr}
+
+    runs = [easy(f"2026-10-{d:02d}") for d in (1, 5, 9, 13, 17, 21, 25)]
+    runs.append(easy("2026-10-26", km=2))                  # too short to count
+    runs.append({**easy("2026-10-26"), "sport": "WeightTraining"})
+    today = date(2026, 10, 27)
+    out = vo2.summary(runs, [], 190, 55, today)
+    assert out["calibration"] is None and len(out["estimate"]) == 7
+    assert 49 < out["estimate"][-1]["value"] < 51            # 6:30/km at 67% HRR
+    out = vo2.summary(runs, [{"issue": 1, "date": "2026-10-24", "value": 54.0}], 190, 55, today)
+    assert out["estimate"][-1]["value"] == 54.0 and out["watch"] == [{"date": "2026-10-24", "value": 54.0}]

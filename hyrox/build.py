@@ -10,7 +10,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import garmin, stations, strava
+from . import garmin, stations, strava, vo2
 from .adapt import adapt
 from .avatar import avatar
 from .load import daily_loads, series
@@ -26,14 +26,6 @@ def read_json(path, default):
 def write_json(path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(obj, indent=1, sort_keys=True) + "\n")
-
-
-def vo2max_series(logs, today, days=84):
-    """Latest logged VO2 max per day over the last `days` days. Garmin's Personal API
-    doesn't expose VO2 max, so the values come from the VO2 max issue form."""
-    since = (today - timedelta(days=days)).isoformat()
-    by_day = {l["date"]: l["value"] for l in logs if l["date"] >= since}
-    return [{"date": d, "value": by_day[d]} for d in sorted(by_day)]
 
 
 def main(argv=None):
@@ -52,7 +44,7 @@ def main(argv=None):
     acts = read_json(DATA / "activities.json", {})
     well = read_json(DATA / "wellness.json", {})
     logs = read_json(DATA / "station_logs.json", [])
-    vo2 = read_json(DATA / "vo2max_logs.json", [])
+    vo2_logs = read_json(DATA / "vo2max_logs.json", [])
     if not args.offline:
         interval_dates = {s["date"] for s in sessions if s["kind"] == "intervals"}
         use_strava = bool(os.environ.get("STRAVA_REFRESH_TOKEN"))
@@ -70,11 +62,11 @@ def main(argv=None):
         except Exception as e:
             print(f"garmin: sync failed, keeping cached data: {e}")
         logs = stations.fetch_logs() or logs
-        vo2 = stations.fetch_vo2max() or vo2
+        vo2_logs = stations.fetch_vo2max() or vo2_logs
         write_json(DATA / "activities.json", acts)
         write_json(DATA / "wellness.json", well)
         write_json(DATA / "station_logs.json", logs)
-        write_json(DATA / "vo2max_logs.json", vo2)
+        write_json(DATA / "vo2max_logs.json", vo2_logs)
 
     activities = sorted(acts.values(), key=lambda a: a["start"])
     athlete = plan["athlete"]
@@ -96,7 +88,7 @@ def main(argv=None):
         "avatar": avatar(plan, result["sessions"], well, load_rows, history_days, today),
         "load": load_rows[-56:],
         "wellness": [well[d] for d in sorted(well) if d >= (today - timedelta(days=28)).isoformat()],
-        "vo2max": vo2max_series(vo2, today),
+        "vo2max": vo2.summary(activities, vo2_logs, athlete["max_hr"], rest_hr, today),
         "recent_activities": sorted(recent.values(), key=lambda a: a["start"], reverse=True)[:15],
     }
     for a in out["recent_activities"]:

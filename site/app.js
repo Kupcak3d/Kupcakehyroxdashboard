@@ -168,23 +168,36 @@ function renderTiles(d) {
 // ---------- charts ----------
 
 function vo2Tile(v, repo) {
-  const last = v[v.length - 1];
+  const est = v.estimate || [], watch = v.watch || [];
   const log = repo ? `<a href="https://github.com/${repo}/issues/new?template=vo2max-log.yml" target="_blank" rel="noopener">Log from your watch</a>` : "";
-  if (!last) return ["VO2 max", "–", log || "No VO2 max logged yet"];
-  // Compare with the latest reading at least 4 weeks before the current one.
-  const base = [...v].reverse().find((r) => r.date <= addDays(last.date, -28));
+  const line = est.length ? est : watch;
+  const last = line[line.length - 1];
+  if (!last) return ["VO2 max", "–", log || "No runs with heart rate yet"];
+  // Compare with the latest point at least 4 weeks before the current one.
+  const base = [...line].reverse().find((r) => r.date <= addDays(last.date, -28));
   const diff = base ? Math.round((last.value - base.value) * 10) / 10 : null;
-  const change = diff == null ? "" : diff === 0 ? "No change vs 4 wks ago · "
-    : `<span class="${diff > 0 ? "ok" : "bad"}">${diff > 0 ? "+" : "−"}${Math.abs(diff)}</span> vs 4 wks ago · `;
-  return ["VO2 max", last.value, `${change}${shortDate(last.date)}${log ? ` · ${log}` : ""}${sparkline(v.map((r) => r.value))}`];
+  const change = diff == null ? "" : diff === 0 ? "No change vs 4 wks ago<br>"
+    : `<span class="${diff > 0 ? "ok" : "bad"}">${diff > 0 ? "+" : "−"}${Math.abs(diff)}</span> vs 4 wks ago<br>`;
+  const w = watch[watch.length - 1];
+  const source = !est.length ? `Watch, ${shortDate(last.date)}`
+    : w ? (v.calibration ? `From runs, matched to watch (${w.value}, ${shortDate(w.date)})`
+                         : `From runs · watch ${w.value}, ${shortDate(w.date)}`)
+    : "Estimated from runs";
+  const legend = est.length && watch.length ? `<div class="spark-legend"><span class="key s1"></span>Runs <span class="dot"></span>Watch</div>` : "";
+  return ["VO2 max", Math.round(last.value), `${change}${source}${log ? ` · ${log}` : ""}${sparkline(line, est.length ? watch : [])}${legend}`];
 }
 
-function sparkline(vals) {
-  if (vals.length < 2) return "";
-  const w = 160, h = 28, lo = Math.min(...vals) - 0.5, hi = Math.max(...vals) + 0.5;
-  const pts = vals.map((y, i) => `${(i / (vals.length - 1)) * w},${h - ((y - lo) / (hi - lo)) * h}`);
+function sparkline(line, dots) {
+  if (line.length + dots.length < 2) return "";
+  const all = [...line, ...dots], w = 160, h = 28;
+  const t = (d) => parseDate(d).getTime();
+  const t0 = Math.min(...all.map((r) => t(r.date))), t1 = Math.max(...all.map((r) => t(r.date)));
+  const lo = Math.min(...all.map((r) => r.value)) - 0.5, hi = Math.max(...all.map((r) => r.value)) + 0.5;
+  const x = (r) => (t1 > t0 ? ((t(r.date) - t0) / (t1 - t0)) * w : w / 2), y = (r) => h - ((r.value - lo) / (hi - lo)) * h;
+  // Zero-length round-capped lines draw as circles that survive the non-uniform scaling.
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="VO2 max trend, last 12 weeks">
-    <polyline points="${pts.join(" ")}" /></svg>`;
+    <polyline points="${line.map((r) => `${x(r)},${y(r)}`).join(" ")}" />
+    ${dots.map((r) => `<line class="dot" x1="${x(r)}" y1="${y(r)}" x2="${x(r)}" y2="${y(r)}"><title>Watch ${r.value}, ${shortDate(r.date)}</title></line>`).join("")}</svg>`;
 }
 
 const tip = $("tip");
