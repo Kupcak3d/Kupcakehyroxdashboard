@@ -193,8 +193,6 @@ def sync_activities(client, cache, since, today, interval_dates):
         start += 100
     if new and "activityType" not in new[0]:
         print(f"garmin: activity records have unexpected fields: {sorted(new[0])}")
-    if new and not any(normalize_activity(r)["vo2max"] for r in new):
-        print(f"garmin: no VO2 max on any activity; fields: {sorted(new[0])}")
     for raw in new:
         a = normalize_activity(raw)
         a["laps"] = (cache.get(a["id"]) or {}).get("laps")
@@ -209,6 +207,49 @@ def sync_activities(client, cache, since, today, interval_dates):
                 if lap_failures == 1:
                     print(f"garmin: lap splits unavailable ({e}); interval paces will be skipped")
     print(f"garmin: {len(new)} activities since {since}, {len(cache)} cached")
+    return cache
+
+
+VO2_KEYS = ("userData.vo2MaxRunning", "vo2MaxRunning", "vo2MaxValue", "vo2Max", "vO2MaxValue", "vo2max")
+
+
+def vo2_from(payload):
+    v = find(payload, VO2_KEYS, depth=4) if isinstance(payload, dict) else None
+    try:
+        return round(float(v), 1) if v else None
+    except (TypeError, ValueError):
+        return None
+
+
+def sync_vo2max(client, cache, today, weeks=12):
+    """Running VO2 max into the wellness rows. The activity list doesn't carry it, so read
+    today's value from the profile settings and backfill weekly points from fitness age."""
+    tried = []
+    try:
+        v = vo2_from(client.get_user_profile_settings())
+        tried.append(("profile settings", v))
+        if v:
+            cache.setdefault(today.isoformat(), {"date": today.isoformat()})["vo2max"] = v
+    except Exception as e:
+        print(f"garmin: profile settings failed: {e}")
+    for i in range(weeks, -1, -1):
+        d = (today - timedelta(weeks=i)).isoformat()
+        if cache.get(d, {}).get("vo2max"):
+            continue
+        try:
+            payload = client.get_fitness_age(d)
+        except Exception as e:
+            print(f"garmin: fitness age {d} failed: {e}")
+            break
+        v = vo2_from(payload)
+        if not v:
+            if isinstance(payload, dict):
+                print(f"garmin: no VO2 max in fitness age; fields: {key_names(payload)}")
+            break
+        cache.setdefault(d, {"date": d})["vo2max"] = v
+        tried.append((f"fitness age {d}", v))
+    points = sum(1 for r in cache.values() if r.get("vo2max"))
+    print(f"garmin: VO2 max found in {[t for t, v in tried if v]}; {points} days cached")
     return cache
 
 
