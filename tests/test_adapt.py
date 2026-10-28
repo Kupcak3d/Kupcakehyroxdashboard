@@ -158,43 +158,28 @@ def test_garmin_activities_normalize_and_laps():
     assert (lift["sport"], lift["distance_km"], lift["laps"]) == ("WeightTraining", 0.0, None)
 
 
-def test_vo2max_series_keeps_latest_reading_per_day():
-    from hyrox.build import vo2max_series
-    from hyrox.garmin import normalize_activity
+def test_vo2max_form_parsing():
+    from hyrox.stations import to_vo2
 
-    raw = [
-        {"activityId": 1, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-09-01 07:00:00", "vO2MaxValue": 50.0},
-        {"activityId": 2, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-10-20 07:00:00", "vO2MaxValue": 51.0},
-        {"activityId": 3, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-10-20 18:00:00", "vO2MaxValue": 52.0},
-        {"activityId": 4, "activityType": {"typeKey": "strength_training"}, "startTimeLocal": "2026-10-22 18:00:00"},
-        {"activityId": 5, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-06-01 07:00:00", "vO2MaxValue": 48.0},
-    ]
-    acts = sorted(map(normalize_activity, raw), key=lambda a: a["start"])
-    assert acts[-1]["vo2max"] is None
-    assert vo2max_series(acts, date(2026, 10, 26)) == [
-        {"date": "2026-09-01", "value": 50.0}, {"date": "2026-10-20", "value": 52.0}]
+    issue = lambda n, body: {"number": n, "body": body, "created_at": "2026-10-27T00:00:00Z"}
+    assert to_vo2(issue(2, "### VO2 max\n\n52.4\n\n### Date\n\n_No response_")) == \
+        {"issue": 2, "date": "2026-10-27", "value": 52.4}
+    assert to_vo2(issue(3, "### VO2 max\n\nfifty\n\n### Date\n\n_No response_")) is None
 
 
-def test_vo2max_from_maxmet_then_profile():
-    from hyrox.build import vo2max_series
-    from hyrox.garmin import sync_vo2max
+def test_vo2max_estimate_from_runs_calibrated_to_watch():
+    from hyrox import vo2
 
-    class Client:
-        def __init__(self, maxmet):
-            self.maxmet = maxmet
+    def easy(d, hr=145, pace_s=390, km=8):
+        return {"date": d, "start": d + "T07:00", "sport": "Run", "distance_km": km,
+                "moving_s": pace_s * km, "avg_hr": hr}
 
-        def get(self, path):
-            if "daily" in path and self.maxmet:
-                return [{"generic": {"calendarDate": "2026-09-20", "vo2MaxPreciseValue": 51.4}},
-                        {"generic": {"calendarDate": "2026-10-25", "vo2MaxPreciseValue": 52.6}}]
-            raise RuntimeError("HTTP 404")
-
-        def get_user_profile_settings(self):
-            return {"userData": {"vo2MaxRunning": 53.0, "weight": 80000}}
-
+    runs = [easy(f"2026-10-{d:02d}") for d in (1, 5, 9, 13, 17, 21, 25)]
+    runs.append(easy("2026-10-26", km=2))                  # too short to count
+    runs.append({**easy("2026-10-26"), "sport": "WeightTraining"})
     today = date(2026, 10, 27)
-    well = sync_vo2max(Client(True), {"2026-10-25": {"date": "2026-10-25", "hrv": 60}}, today)
-    assert well["2026-10-25"] == {"date": "2026-10-25", "hrv": 60, "vo2max": 52.6}
-    assert [p["value"] for p in vo2max_series([], today, wellness=well)] == [51.4, 52.6]
-    well = sync_vo2max(Client(False), {}, today)
-    assert well == {"2026-10-27": {"date": "2026-10-27", "vo2max": 53.0}}
+    out = vo2.summary(runs, [], 190, 55, today)
+    assert out["calibration"] is None and len(out["estimate"]) == 7
+    assert 49 < out["estimate"][-1]["value"] < 51            # 6:30/km at 67% HRR
+    out = vo2.summary(runs, [{"issue": 1, "date": "2026-10-24", "value": 54.0}], 190, 55, today)
+    assert out["estimate"][-1]["value"] == 54.0 and out["watch"] == [{"date": "2026-10-24", "value": 54.0}]

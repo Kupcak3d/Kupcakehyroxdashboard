@@ -40,24 +40,50 @@ def to_log(issue):
     }
 
 
-def fetch_logs():
+def to_vo2(issue):
+    f = parse_issue_body(issue.get("body"))
+    m = re.fullmatch(r"\d{2}(\.\d)?", (f.get("vo2 max") or "").strip())
+    if not m:
+        return None
+    return {"issue": issue["number"], "date": (f.get("date") or issue["created_at"][:10]).strip(),
+            "value": float(m.group(0))}
+
+
+def fetch_issues(label):
+    """The repo owner's issues with `label`, or None without GitHub credentials."""
     repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
     if not repo or not token:
-        print("stations: no GITHUB_REPOSITORY/GITHUB_TOKEN, using cached logs only")
+        print(f"stations: no GITHUB_REPOSITORY/GITHUB_TOKEN, using cached {label} only")
         return None
-    logs, page = [], 1
+    issues, page = [], 1
     while True:
         r = requests.get(f"https://api.github.com/repos/{repo}/issues",
                          headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
-                         params={"labels": "station-log", "state": "all", "per_page": 100, "page": page}, timeout=30)
+                         params={"labels": label, "state": "all", "per_page": 100, "page": page}, timeout=30)
         r.raise_for_status()
         batch = r.json()
         if not batch:
             break
         # Public repos let anyone open an issue; only trust the repo owner's logs.
         owner = os.environ.get("GITHUB_REPOSITORY_OWNER", repo.split("/")[0]).lower()
-        mine = [i for i in batch if (i.get("user") or {}).get("login", "").lower() == owner]
-        logs.extend(l for l in map(to_log, mine) if l)
+        issues.extend(i for i in batch if (i.get("user") or {}).get("login", "").lower() == owner)
         page += 1
+    return issues
+
+
+def fetch_logs():
+    issues = fetch_issues("station-log")
+    if issues is None:
+        return None
+    logs = [l for l in map(to_log, issues) if l]
     print(f"stations: {len(logs)} logged results")
+    return sorted(logs, key=lambda l: (l["date"], l["issue"]))
+
+
+def fetch_vo2max():
+    issues = fetch_issues("vo2max-log")
+    if issues is None:
+        return None
+    logs = [l for l in map(to_vo2, issues) if l]
+    print(f"stations: {len(logs)} logged VO2 max values")
     return sorted(logs, key=lambda l: (l["date"], l["issue"]))
