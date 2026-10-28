@@ -28,10 +28,12 @@ def write_json(path, obj):
     path.write_text(json.dumps(obj, indent=1, sort_keys=True) + "\n")
 
 
-def vo2max_series(activities, today, days=84):
-    """Latest VO2 max estimate per day over the last `days` days."""
+def vo2max_series(activities, today, days=84, wellness=None):
+    """Latest VO2 max estimate per day over the last `days` days, from activities and
+    the daily values garmin.sync_vo2max stores in the wellness rows."""
     since = (today - timedelta(days=days)).isoformat()
-    by_day = {a["date"]: a["vo2max"] for a in activities if a.get("vo2max") and a["date"] >= since}
+    rows = sorted(list(activities) + list((wellness or {}).values()), key=lambda r: r.get("start") or r["date"])
+    by_day = {r["date"]: r["vo2max"] for r in rows if r.get("vo2max") and r["date"] >= since}
     return [{"date": d, "value": round(float(by_day[d]), 1)} for d in sorted(by_day)]
 
 
@@ -61,6 +63,7 @@ def main(argv=None):
             with garmin.client_session() as client:
                 if client:
                     well = garmin.sync(client, well, today)
+                    well = garmin.sync_vo2max(client, well, today)
                     if not use_strava:
                         # Garmin is the activity source unless Strava is configured.
                         acts = {k: a for k, a in acts.items() if a.get("source") == "garmin"}
@@ -92,7 +95,7 @@ def main(argv=None):
         "avatar": avatar(plan, result["sessions"], well, load_rows, history_days, today),
         "load": load_rows[-56:],
         "wellness": [well[d] for d in sorted(well) if d >= (today - timedelta(days=28)).isoformat()],
-        "vo2max": vo2max_series(activities, today),
+        "vo2max": vo2max_series(activities, today, wellness=well),
         "recent_activities": sorted(recent.values(), key=lambda a: a["start"], reverse=True)[:15],
     }
     for a in out["recent_activities"]:
