@@ -7,6 +7,7 @@ import requests
 from .plan import parse_time
 
 STATION_KEYS = {
+    "Running (8 x 1 km total)": "runs",
     "SkiErg": "ski", "Sled push": "sled_push", "Sled pull": "sled_pull",
     "Burpee broad jumps": "bbj", "Row": "row", "Farmers carry": "farmers",
     "Sandbag lunges": "lunges", "Wall balls": "wall_balls",

@@ -265,13 +265,33 @@ def apply_focus(sessions, focus, today, changes):
                         "reason": "Furthest behind race target"})
 
 
-def projection(plan, stations, pace_offset, interval_deltas):
+def run_row(plan, logs, interval_deltas):
+    """The race's 8 x 1 km as a stations-table row: a logged full 8 km run time if
+    there is one, otherwise 8 km at target pace nudged by interval results."""
     base = (parse_time(plan["race"]["run_pace"]["min"]) + parse_time(plan["race"]["run_pace"]["max"])) / 2
     drift = 0
     if interval_deltas:
         drift = max(-10, min(15, sum(interval_deltas[-3:]) / len(interval_deltas[-3:])))
-    run_pace = base + drift
-    runs = 8 * run_pace
+    target = 8 * base
+    mine = [l for l in logs if l["station"] == "runs" and l["full_distance"]]
+    latest = mine[-1] if mine else None
+    if latest:
+        est = latest["seconds"] * (FATIGUE_FACTOR if latest["fresh"] else 1)
+        basis = f"logged {latest['date']}" + (" (fresh, +10%)" if latest["fresh"] else "")
+    else:
+        est = 8 * (base + drift)
+        basis = f"8 km at {fmt_time(base + drift)}/km" + (" (from interval results)" if drift else " (target pace)")
+    return {"key": "runs", "name": "Running", "standard": "8 x 1 km", "target": fmt_time(target),
+            "latest": fmt_time(latest["seconds"]) if latest else None,
+            "latest_date": latest["date"] if latest else None,
+            "best": fmt_time(min(l["seconds"] for l in mine)) if mine else None,
+            "estimate_s": round(est), "estimate": fmt_time(est), "basis": basis,
+            "gap_pct": round((est - target) / target * 100, 1), "logs": len(mine)}
+
+
+def projection(plan, stations, run):
+    runs = run["estimate_s"]
+    run_pace = runs / 8
     st = sum(r["estimate_s"] for r in stations)
     rox = parse_time(plan["roxzone_target"])
     total = runs + st + rox
@@ -299,8 +319,10 @@ def adapt(plan, sessions, activities, wellness, logs, load_rows, today):
     focus = focus_stations(stations)
     apply_focus(sessions, focus, today, changes)
     deltas = [s["pace_delta"] for s in sessions if s.get("pace_delta") is not None]
+    run = run_row(plan, logs, deltas)
     return {
         "sessions": sessions, "changes": changes, "alerts": alerts, "readiness": flags,
-        "weeks": weeks, "stations": stations, "focus": [f["key"] for f in focus],
-        "projection": projection(plan, stations, offset, deltas),
+        # Running leads the table like it leads the race, but isn't a Thursday skill focus.
+        "weeks": weeks, "stations": [run] + stations, "focus": [f["key"] for f in focus],
+        "projection": projection(plan, stations, run),
     }

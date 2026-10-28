@@ -72,6 +72,18 @@ def test_station_logs_drive_focus_and_projection():
     assert res["projection"]["total_s"] > 4800
 
 
+def test_running_row_leads_stations_and_uses_logged_time():
+    res = run(steady_history(), today="2026-10-25")
+    row = res["stations"][0]
+    assert (row["key"], row["target"], row["estimate"]) == ("runs", "41:20", "41:20")
+    assert "runs" not in res["focus"] and res["projection"]["runs"] == "41:20"
+    logs = [{"issue": 2, "date": "2026-10-24", "station": "runs", "seconds": 2580,
+             "fresh": False, "full_distance": True, "notes": ""}]
+    res = run(steady_history(), logs=logs, today="2026-10-25")
+    assert res["stations"][0]["estimate"] == "43:00" and res["projection"]["runs"] == "43:00"
+    assert res["stations"][0]["gap_pct"] == 4.0
+
+
 def test_issue_form_parsing():
     body = ("### Station\n\nWall balls\n\n### Time (m:ss)\n\n5:42\n\n### Date\n\n2026-10-22\n\n"
             "### Distance\n\nFull race distance\n\n### Conditions\n\nTired (in a sim or after running)\n\n"
