@@ -28,6 +28,13 @@ def write_json(path, obj):
     path.write_text(json.dumps(obj, indent=1, sort_keys=True) + "\n")
 
 
+def vo2max_series(activities, today, days=84):
+    """Latest VO2 max estimate per day over the last `days` days."""
+    since = (today - timedelta(days=days)).isoformat()
+    by_day = {a["date"]: a["vo2max"] for a in activities if a.get("vo2max") and a["date"] >= since}
+    return [{"date": d, "value": round(float(by_day[d]), 1)} for d in sorted(by_day)]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--offline", action="store_true")
@@ -85,6 +92,7 @@ def main(argv=None):
         "avatar": avatar(plan, result["sessions"], well, load_rows, history_days, today),
         "load": load_rows[-56:],
         "wellness": [well[d] for d in sorted(well) if d >= (today - timedelta(days=28)).isoformat()],
+        "vo2max": vo2max_series(activities, today),
         "recent_activities": sorted(recent.values(), key=lambda a: a["start"], reverse=True)[:15],
     }
     for a in out["recent_activities"]:

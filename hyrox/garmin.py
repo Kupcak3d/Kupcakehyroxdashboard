@@ -164,6 +164,8 @@ def normalize_activity(a):
         "avg_hr": a.get("averageHR"),
         "max_hr": a.get("maxHR"),
         "suffer_score": None,
+        # Garmin's running VO2 max estimate, recorded on each outdoor run with heart rate.
+        "vo2max": next((a[k] for k in ("vO2MaxValue", "vo2MaxValue", "vo2Max") if a.get(k)), None),
     }
 
 
@@ -191,6 +193,8 @@ def sync_activities(client, cache, since, today, interval_dates):
         start += 100
     if new and "activityType" not in new[0]:
         print(f"garmin: activity records have unexpected fields: {sorted(new[0])}")
+    if new and not any(normalize_activity(r)["vo2max"] for r in new):
+        print(f"garmin: no VO2 max on any activity; fields: {sorted(new[0])}")
     for raw in new:
         a = normalize_activity(raw)
         a["laps"] = (cache.get(a["id"]) or {}).get("laps")

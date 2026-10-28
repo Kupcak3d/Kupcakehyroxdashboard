@@ -144,3 +144,20 @@ def test_garmin_activities_normalize_and_laps():
     assert (run_["sport"], run_["date"], run_["distance_km"], run_["moving_s"]) == ("Run", "2026-10-20", 10.0, 3050)
     assert run_["laps"] == [{"distance_m": 1200.0, "moving_s": 352.0, "avg_hr": 170}]
     assert (lift["sport"], lift["distance_km"], lift["laps"]) == ("WeightTraining", 0.0, None)
+
+
+def test_vo2max_series_keeps_latest_reading_per_day():
+    from hyrox.build import vo2max_series
+    from hyrox.garmin import normalize_activity
+
+    raw = [
+        {"activityId": 1, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-09-01 07:00:00", "vO2MaxValue": 50.0},
+        {"activityId": 2, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-10-20 07:00:00", "vO2MaxValue": 51.0},
+        {"activityId": 3, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-10-20 18:00:00", "vO2MaxValue": 52.0},
+        {"activityId": 4, "activityType": {"typeKey": "strength_training"}, "startTimeLocal": "2026-10-22 18:00:00"},
+        {"activityId": 5, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-06-01 07:00:00", "vO2MaxValue": 48.0},
+    ]
+    acts = sorted(map(normalize_activity, raw), key=lambda a: a["start"])
+    assert acts[-1]["vo2max"] is None
+    assert vo2max_series(acts, date(2026, 10, 26)) == [
+        {"date": "2026-09-01", "value": 50.0}, {"date": "2026-10-20", "value": 52.0}]
