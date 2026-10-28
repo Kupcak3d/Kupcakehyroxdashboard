@@ -158,43 +158,17 @@ def test_garmin_activities_normalize_and_laps():
     assert (lift["sport"], lift["distance_km"], lift["laps"]) == ("WeightTraining", 0.0, None)
 
 
-def test_vo2max_series_keeps_latest_reading_per_day():
+def test_vo2max_form_logs_feed_the_series():
     from hyrox.build import vo2max_series
-    from hyrox.garmin import normalize_activity
+    from hyrox.stations import to_vo2
 
-    raw = [
-        {"activityId": 1, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-09-01 07:00:00", "vO2MaxValue": 50.0},
-        {"activityId": 2, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-10-20 07:00:00", "vO2MaxValue": 51.0},
-        {"activityId": 3, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-10-20 18:00:00", "vO2MaxValue": 52.0},
-        {"activityId": 4, "activityType": {"typeKey": "strength_training"}, "startTimeLocal": "2026-10-22 18:00:00"},
-        {"activityId": 5, "activityType": {"typeKey": "running"}, "startTimeLocal": "2026-06-01 07:00:00", "vO2MaxValue": 48.0},
-    ]
-    acts = sorted(map(normalize_activity, raw), key=lambda a: a["start"])
-    assert acts[-1]["vo2max"] is None
-    assert vo2max_series(acts, date(2026, 10, 26)) == [
-        {"date": "2026-09-01", "value": 50.0}, {"date": "2026-10-20", "value": 52.0}]
-
-
-def test_vo2max_from_maxmet_then_profile():
-    from hyrox.build import vo2max_series
-    from hyrox.garmin import sync_vo2max
-
-    class Client:
-        def __init__(self, maxmet):
-            self.maxmet = maxmet
-
-        def get(self, path):
-            if "daily" in path and self.maxmet:
-                return [{"generic": {"calendarDate": "2026-09-20", "vo2MaxPreciseValue": 51.4}},
-                        {"generic": {"calendarDate": "2026-10-25", "vo2MaxPreciseValue": 52.6}}]
-            raise RuntimeError("HTTP 404")
-
-        def get_user_profile_settings(self):
-            return {"userData": {"vo2MaxRunning": 53.0, "weight": 80000}}
-
-    today = date(2026, 10, 27)
-    well = sync_vo2max(Client(True), {"2026-10-25": {"date": "2026-10-25", "hrv": 60}}, today)
-    assert well["2026-10-25"] == {"date": "2026-10-25", "hrv": 60, "vo2max": 52.6}
-    assert [p["value"] for p in vo2max_series([], today, wellness=well)] == [51.4, 52.6]
-    well = sync_vo2max(Client(False), {}, today)
-    assert well == {"2026-10-27": {"date": "2026-10-27", "vo2max": 53.0}}
+    issue = lambda n, body, created: {"number": n, "body": body, "created_at": created}
+    logs = [l for l in [
+        to_vo2(issue(1, "### VO2 max\n\n51\n\n### Date\n\n2026-09-20", "2026-09-20T00:00:00Z")),
+        to_vo2(issue(2, "### VO2 max\n\n52.4\n\n### Date\n\n_No response_", "2026-10-27T00:00:00Z")),
+        to_vo2(issue(3, "### VO2 max\n\nfifty\n\n### Date\n\n_No response_", "2026-10-27T00:00:00Z")),
+        to_vo2(issue(4, "### VO2 max\n\n47\n\n### Date\n\n2026-06-01", "2026-06-01T00:00:00Z")),
+    ] if l]
+    assert logs[1] == {"issue": 2, "date": "2026-10-27", "value": 52.4}
+    assert vo2max_series(logs, date(2026, 10, 27)) == [
+        {"date": "2026-09-20", "value": 51.0}, {"date": "2026-10-27", "value": 52.4}]

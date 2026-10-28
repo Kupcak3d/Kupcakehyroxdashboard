@@ -1,0 +1,18 @@
+name: Log VO2 max
+description: Record the VO2 max your Garmin watch shows, for the dashboard's VO2 max tile.
+title: "VO2 max"
+labels: [vo2max-log]
+body:
+  - type: input
+    id: vo2max
+    attributes:
+      label: VO2 max
+      description: The running VO2 max from your watch or Garmin Connect, e.g. 52 or 52.4.
+      placeholder: "52"
+    validations:
+      required: true
+  - type: input
+    id: date
+    attributes:
+      label: Date
+      description: YYYY-MM-DD. Leave blank for today.

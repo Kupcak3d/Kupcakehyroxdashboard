@@ -164,8 +164,6 @@ def normalize_activity(a):
         "avg_hr": a.get("averageHR"),
         "max_hr": a.get("maxHR"),
         "suffer_score": None,
-        # Garmin's running VO2 max estimate, recorded on each outdoor run with heart rate.
-        "vo2max": next((a[k] for k in ("vO2MaxValue", "vo2MaxValue", "vo2Max") if a.get(k)), None),
     }
 
 
@@ -207,66 +205,6 @@ def sync_activities(client, cache, since, today, interval_dates):
                 if lap_failures == 1:
                     print(f"garmin: lap splits unavailable ({e}); interval paces will be skipped")
     print(f"garmin: {len(new)} activities since {since}, {len(cache)} cached")
-    return cache
-
-
-VO2_KEYS = ("userData.vo2MaxRunning", "vo2MaxRunning", "vo2MaxValue", "vo2Max", "vO2MaxValue", "vo2max")
-
-
-def vo2_from(payload):
-    v = find(payload, VO2_KEYS, depth=4) if isinstance(payload, dict) else None
-    try:
-        return round(float(v), 1) if v else None
-    except (TypeError, ValueError):
-        return None
-
-
-def maxmet_points(payload):
-    """(date, value) pairs from a metrics-service maxmet response."""
-    out = []
-    for rec in payload if isinstance(payload, list) else [payload]:
-        if not isinstance(rec, dict):
-            continue
-        g = rec.get("generic") or rec
-        d = g.get("calendarDate") or rec.get("calendarDate")
-        v = vo2_from({"vo2MaxValue": g.get("vo2MaxPreciseValue") or g.get("vo2MaxValue")})
-        if d and v:
-            out.append((str(d)[:10], v))
-    return out
-
-
-def sync_vo2max(client, cache, today, weeks=12):
-    """Running VO2 max into the wellness rows. The activity list doesn't carry it, so try
-    the metrics service, then the profile settings (today's value only)."""
-    start = (today - timedelta(weeks=weeks)).isoformat()
-    found = []
-    for path in (f"/metrics-service/metrics/maxmet/daily/{start}/{today.isoformat()}",
-                 f"/metrics-service/metrics/maxmet/latest/{today.isoformat()}"):
-        try:
-            payload = client.get(path)
-        except Exception as e:
-            print(f"garmin: {path.split('/')[4]} maxmet unavailable: {e}")
-            continue
-        found = maxmet_points(payload)
-        if found:
-            break
-        sample = payload[0] if isinstance(payload, list) and payload else payload
-        print(f"garmin: no VO2 max in {path.split('/')[4]} maxmet; fields: "
-              f"{key_names(sample) if isinstance(sample, dict) else type(payload).__name__}")
-    if not found:
-        try:
-            profile = client.get_user_profile_settings()
-            v = vo2_from(profile)
-            if v:
-                found = [(today.isoformat(), v)]
-            elif isinstance(profile, dict):
-                print(f"garmin: no VO2 max in profile settings; fields: {key_names(profile, depth=3)}")
-        except Exception as e:
-            print(f"garmin: profile settings failed: {e}")
-    for d, v in found:
-        cache.setdefault(d, {"date": d})["vo2max"] = v
-    points = sum(1 for r in cache.values() if r.get("vo2max"))
-    print(f"garmin: {len(found)} VO2 max readings fetched; {points} days cached")
     return cache
 
 

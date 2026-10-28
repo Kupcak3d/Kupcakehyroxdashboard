@@ -28,13 +28,12 @@ def write_json(path, obj):
     path.write_text(json.dumps(obj, indent=1, sort_keys=True) + "\n")
 
 
-def vo2max_series(activities, today, days=84, wellness=None):
-    """Latest VO2 max estimate per day over the last `days` days, from activities and
-    the daily values garmin.sync_vo2max stores in the wellness rows."""
+def vo2max_series(logs, today, days=84):
+    """Latest logged VO2 max per day over the last `days` days. Garmin's Personal API
+    doesn't expose VO2 max, so the values come from the VO2 max issue form."""
     since = (today - timedelta(days=days)).isoformat()
-    rows = sorted(list(activities) + list((wellness or {}).values()), key=lambda r: r.get("start") or r["date"])
-    by_day = {r["date"]: r["vo2max"] for r in rows if r.get("vo2max") and r["date"] >= since}
-    return [{"date": d, "value": round(float(by_day[d]), 1)} for d in sorted(by_day)]
+    by_day = {l["date"]: l["value"] for l in logs if l["date"] >= since}
+    return [{"date": d, "value": by_day[d]} for d in sorted(by_day)]
 
 
 def main(argv=None):
@@ -53,6 +52,7 @@ def main(argv=None):
     acts = read_json(DATA / "activities.json", {})
     well = read_json(DATA / "wellness.json", {})
     logs = read_json(DATA / "station_logs.json", [])
+    vo2 = read_json(DATA / "vo2max_logs.json", [])
     if not args.offline:
         interval_dates = {s["date"] for s in sessions if s["kind"] == "intervals"}
         use_strava = bool(os.environ.get("STRAVA_REFRESH_TOKEN"))
@@ -63,7 +63,6 @@ def main(argv=None):
             with garmin.client_session() as client:
                 if client:
                     well = garmin.sync(client, well, today)
-                    well = garmin.sync_vo2max(client, well, today)
                     if not use_strava:
                         # Garmin is the activity source unless Strava is configured.
                         acts = {k: a for k, a in acts.items() if a.get("source") == "garmin"}
@@ -71,9 +70,11 @@ def main(argv=None):
         except Exception as e:
             print(f"garmin: sync failed, keeping cached data: {e}")
         logs = stations.fetch_logs() or logs
+        vo2 = stations.fetch_vo2max() or vo2
         write_json(DATA / "activities.json", acts)
         write_json(DATA / "wellness.json", well)
         write_json(DATA / "station_logs.json", logs)
+        write_json(DATA / "vo2max_logs.json", vo2)
 
     activities = sorted(acts.values(), key=lambda a: a["start"])
     athlete = plan["athlete"]
@@ -95,7 +96,7 @@ def main(argv=None):
         "avatar": avatar(plan, result["sessions"], well, load_rows, history_days, today),
         "load": load_rows[-56:],
         "wellness": [well[d] for d in sorted(well) if d >= (today - timedelta(days=28)).isoformat()],
-        "vo2max": vo2max_series(activities, today, wellness=well),
+        "vo2max": vo2max_series(vo2, today),
         "recent_activities": sorted(recent.values(), key=lambda a: a["start"], reverse=True)[:15],
     }
     for a in out["recent_activities"]:
