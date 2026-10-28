@@ -7,7 +7,7 @@ body:
     id: station
     attributes:
       label: Station
-      options: [SkiErg, Sled push, Sled pull, Burpee broad jumps, Row, Farmers carry, Sandbag lunges, Wall balls]
+      options: [Running (8 x 1 km total), SkiErg, Sled push, Sled pull, Burpee broad jumps, Row, Farmers carry, Sandbag lunges, Wall balls]
     validations:
       required: true
   - type: input
@@ -15,6 +15,7 @@ body:
     attributes:
       label: Time (m:ss)
       placeholder: "5:12"
+      description: For Running, the total of all 8 runs, e.g. 41:30.
     validations:
       required: true
   - type: input
