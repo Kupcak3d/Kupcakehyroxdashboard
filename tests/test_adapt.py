@@ -175,19 +175,26 @@ def test_vo2max_series_keeps_latest_reading_per_day():
         {"date": "2026-09-01", "value": 50.0}, {"date": "2026-10-20", "value": 52.0}]
 
 
-def test_vo2max_from_profile_and_fitness_age():
+def test_vo2max_from_maxmet_then_profile():
     from hyrox.build import vo2max_series
     from hyrox.garmin import sync_vo2max
 
     class Client:
+        def __init__(self, maxmet):
+            self.maxmet = maxmet
+
+        def get(self, path):
+            if "daily" in path and self.maxmet:
+                return [{"generic": {"calendarDate": "2026-09-20", "vo2MaxPreciseValue": 51.4}},
+                        {"generic": {"calendarDate": "2026-10-25", "vo2MaxPreciseValue": 52.6}}]
+            raise RuntimeError("HTTP 404")
+
         def get_user_profile_settings(self):
             return {"userData": {"vo2MaxRunning": 53.0, "weight": 80000}}
 
-        def get_fitness_age(self, d):
-            return {"chronologicalAge": 35, "vo2Max": 51.0 if d < "2026-10-01" else 52.0}
-
     today = date(2026, 10, 27)
-    well = sync_vo2max(Client(), {"2026-10-27": {"date": "2026-10-27", "hrv": 60}}, today, weeks=4)
-    assert well["2026-10-27"] == {"date": "2026-10-27", "hrv": 60, "vo2max": 53.0}
-    series = vo2max_series([], today, wellness=well)
-    assert [p["value"] for p in series] == [51.0, 52.0, 52.0, 52.0, 53.0]
+    well = sync_vo2max(Client(True), {"2026-10-25": {"date": "2026-10-25", "hrv": 60}}, today)
+    assert well["2026-10-25"] == {"date": "2026-10-25", "hrv": 60, "vo2max": 52.6}
+    assert [p["value"] for p in vo2max_series([], today, wellness=well)] == [51.4, 52.6]
+    well = sync_vo2max(Client(False), {}, today)
+    assert well == {"2026-10-27": {"date": "2026-10-27", "vo2max": 53.0}}

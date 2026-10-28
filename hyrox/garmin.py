@@ -221,35 +221,52 @@ def vo2_from(payload):
         return None
 
 
-def sync_vo2max(client, cache, today, weeks=12):
-    """Running VO2 max into the wellness rows. The activity list doesn't carry it, so read
-    today's value from the profile settings and backfill weekly points from fitness age."""
-    tried = []
-    try:
-        v = vo2_from(client.get_user_profile_settings())
-        tried.append(("profile settings", v))
-        if v:
-            cache.setdefault(today.isoformat(), {"date": today.isoformat()})["vo2max"] = v
-    except Exception as e:
-        print(f"garmin: profile settings failed: {e}")
-    for i in range(weeks, -1, -1):
-        d = (today - timedelta(weeks=i)).isoformat()
-        if cache.get(d, {}).get("vo2max"):
+def maxmet_points(payload):
+    """(date, value) pairs from a metrics-service maxmet response."""
+    out = []
+    for rec in payload if isinstance(payload, list) else [payload]:
+        if not isinstance(rec, dict):
             continue
+        g = rec.get("generic") or rec
+        d = g.get("calendarDate") or rec.get("calendarDate")
+        v = vo2_from({"vo2MaxValue": g.get("vo2MaxPreciseValue") or g.get("vo2MaxValue")})
+        if d and v:
+            out.append((str(d)[:10], v))
+    return out
+
+
+def sync_vo2max(client, cache, today, weeks=12):
+    """Running VO2 max into the wellness rows. The activity list doesn't carry it, so try
+    the metrics service, then the profile settings (today's value only)."""
+    start = (today - timedelta(weeks=weeks)).isoformat()
+    found = []
+    for path in (f"/metrics-service/metrics/maxmet/daily/{start}/{today.isoformat()}",
+                 f"/metrics-service/metrics/maxmet/latest/{today.isoformat()}"):
         try:
-            payload = client.get_fitness_age(d)
+            payload = client.get(path)
         except Exception as e:
-            print(f"garmin: fitness age {d} failed: {e}")
+            print(f"garmin: {path.split('/')[4]} maxmet unavailable: {e}")
+            continue
+        found = maxmet_points(payload)
+        if found:
             break
-        v = vo2_from(payload)
-        if not v:
-            if isinstance(payload, dict):
-                print(f"garmin: no VO2 max in fitness age; fields: {key_names(payload)}")
-            break
+        sample = payload[0] if isinstance(payload, list) and payload else payload
+        print(f"garmin: no VO2 max in {path.split('/')[4]} maxmet; fields: "
+              f"{key_names(sample) if isinstance(sample, dict) else type(payload).__name__}")
+    if not found:
+        try:
+            profile = client.get_user_profile_settings()
+            v = vo2_from(profile)
+            if v:
+                found = [(today.isoformat(), v)]
+            elif isinstance(profile, dict):
+                print(f"garmin: no VO2 max in profile settings; fields: {key_names(profile, depth=3)}")
+        except Exception as e:
+            print(f"garmin: profile settings failed: {e}")
+    for d, v in found:
         cache.setdefault(d, {"date": d})["vo2max"] = v
-        tried.append((f"fitness age {d}", v))
     points = sum(1 for r in cache.values() if r.get("vo2max"))
-    print(f"garmin: VO2 max found in {[t for t, v in tried if v]}; {points} days cached")
+    print(f"garmin: {len(found)} VO2 max readings fetched; {points} days cached")
     return cache
 
 
