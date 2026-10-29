@@ -51,6 +51,14 @@ def apply_swaps(plan, sessions):
                 s["moved"] = True
 
 
+def apply_addons(plan, sessions):
+    """Add each plan["addons"] note to sessions of its kinds, from its start date on."""
+    for ad in plan.get("addons", []):
+        for s in sessions:
+            if s["kind"] in ad["kinds"] and s["date"] >= ad.get("from", ""):
+                s.setdefault("notes", []).append(ad["note"])
+
+
 def expand_sessions(plan):
     """Every planned session with a concrete date, after swaps, sorted by date."""
     out = []
@@ -65,6 +73,7 @@ def expand_sessions(plan):
                 "phase": phase_for(plan, wk["week"]),
                 "hard": s["kind"] in HARD_KINDS,
             })
+    apply_addons(plan, out)
     apply_swaps(plan, out)
     return sorted(out, key=lambda s: s["date"])
 
