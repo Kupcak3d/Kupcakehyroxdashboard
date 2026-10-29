@@ -83,6 +83,10 @@ show your training and recovery numbers, and anyone with its URL can see them.
 
 Either date can be a rest day, which simply moves the session. Both days show a "moved" badge.
 
+**Extra work on a kind of session** (for example, grip work after every strength day and sim):
+add an entry to `addons` with the session kinds, an optional `from` date, and the note to show.
+It follows the session if you swap days.
+
 
 Edit `plan/plan.json` (sessions, paces, `run_km`, station targets) and push. Adaptation
 thresholds are constants at the top of `hyrox/adapt.py`.

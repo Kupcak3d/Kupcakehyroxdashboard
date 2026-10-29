@@ -5,6 +5,10 @@
   "swaps": [
     { "dates": ["2026-10-22", "2026-10-24"], "note": "Jeff did the sim Thursday" }
   ],
+  "addons": [
+    { "kinds": ["strength"], "note": "Lifts: back or front squat, Romanian deadlift, walking lunges, bent-over row, heavy carry. 5–8 reps, 2 in reserve." },
+    { "kinds": ["strength", "sim"], "from": "2026-10-28", "note": "Finish with ~10 min grip: dead hangs 3 x max (build to 60 s), farmers holds 3 x 30 s at 32 kg/hand, plate pinches 2 x 20–30 s" }
+  ],
   "race": {
     "date": "2026-12-19",
     "division": "Open Men",

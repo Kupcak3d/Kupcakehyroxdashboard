@@ -183,3 +183,12 @@ def test_vo2max_estimate_from_runs_calibrated_to_watch():
     assert 49 < out["estimate"][-1]["value"] < 51            # 6:30/km at 67% HRR
     out = vo2.summary(runs, [{"issue": 1, "date": "2026-10-24", "value": 54.0}], 190, 55, today)
     assert out["estimate"][-1]["value"] == 54.0 and out["watch"] == [{"date": "2026-10-24", "value": 54.0}]
+
+
+def test_addons_follow_kind_and_start_date():
+    by_date = {s["date"]: s for s in expand_sessions(PLAN)}
+    grip = lambda d: any("grip" in n for n in by_date[d].get("notes", []))
+    assert not grip("2026-10-21")      # Wed before grip work was added
+    assert grip("2026-10-28") and grip("2026-10-31")
+    assert not grip("2026-12-16") and not grip("2026-12-19")  # race week easy Wed, race day
+    assert any(n.startswith("Lifts:") for n in by_date["2026-10-21"]["notes"])
