@@ -293,9 +293,7 @@ function renderStations(d) {
       return `<tr class="${d.focus.includes(s.key) ? "focus" : ""}"><td>${esc(s.name)}</td><td class="num">${s.estimate}</td><td>${vs}</td>
         <td class="num">${s.target}</td><td class="num">${s.latest ?? "–"}</td><td class="wide">${esc(s.standard)}</td><td class="wide">${esc(s.basis)}</td></tr>`;
     }).join("");
-  const link = $("log-link");
-  if (d.repo) link.href = `https://github.com/${d.repo}/issues/new?template=station-log.yml`;
-  else link.setAttribute("aria-disabled", "true");
+  if (d.repo) initQuickLog(d);
 }
 
 function renderRecovery(d) {

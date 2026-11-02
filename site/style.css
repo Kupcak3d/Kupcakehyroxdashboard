@@ -288,3 +288,73 @@ footer a { color: inherit; }
   .sessions li { grid-template-columns: 70px 1fr; }
   .today-title { font-size: 26px; }
 }
+
+/* ---------- quick station log ---------- */
+
+.button { border: 0; cursor: pointer; }
+.button:disabled { opacity: .45; cursor: default; transform: none; box-shadow: none; }
+
+.sheet {
+  width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 48px);
+  padding: 0; border: 1px solid var(--border); border-radius: 18px;
+  background: var(--surface-1); color: var(--text-primary);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .7);
+}
+.sheet::backdrop { background: rgba(0, 0, 0, .65); }
+.sheet form { display: flex; flex-direction: column; max-height: calc(100dvh - 48px); }
+.sheet-head, .sheet-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; flex: none; }
+.sheet-head { border-bottom: 1px solid var(--border); }
+.sheet-head h2 { margin: 0; }
+.sheet-foot { border-top: 1px solid var(--border); padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+.sheet-foot a { font-size: 13px; }
+.sheet-foot .button { padding: 13px 22px; font-size: 16px; }
+.sheet-body { overflow-y: auto; padding: 6px 18px 12px; overscroll-behavior: contain; }
+.icon-btn { background: none; border: 0; color: var(--text-secondary); font-size: 18px; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+
+.sheet fieldset { border: 0; margin: 12px 0 0; padding: 0; min-width: 0; }
+.sheet legend { padding: 0; margin-bottom: 8px; color: var(--text-secondary); font: 700 13px/1 var(--display); text-transform: uppercase; letter-spacing: .1em; }
+.sheet legend small { color: var(--text-muted); text-transform: none; letter-spacing: 0; font: 400 12px/1 Inter, system-ui, sans-serif; margin-left: 6px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips.grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+.chip {
+  min-height: 44px; padding: 8px 12px; border-radius: 10px; cursor: pointer; text-align: left;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-primary);
+  font: 600 14px/1.25 Inter, system-ui, sans-serif; -webkit-tap-highlight-color: transparent;
+}
+.chips.grid .chip { text-align: center; }
+.chip b { display: block; font: 700 13px/1.2 var(--display); text-transform: uppercase; letter-spacing: .06em; }
+.chip span { display: block; color: var(--text-secondary); font-size: 12px; font-weight: 400; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip.on { background: var(--volt-dim); border-color: var(--volt); color: var(--volt); }
+.chip.on span { color: var(--text-primary); }
+
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; padding: 11px 22px; background: var(--surface-2); font-weight: 600; }
+.seg input:checked + span { background: var(--volt); color: #0a0a0a; }
+.seg input:focus-visible + span { outline: 2px solid var(--volt); outline-offset: -4px; }
+
+.field {
+  width: 100%; margin-top: 8px; padding: 11px 12px; border-radius: 10px;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text-primary);
+  font: 16px/1.2 Inter, system-ui, sans-serif; /* 16px stops iOS zooming in */
+}
+.chips + .field { margin-top: 10px; }
+.field:focus { outline: none; border-color: var(--volt); }
+.field.bad { border-color: var(--critical); }
+
+.ql-rows { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.ql-rows:empty { display: none; }
+.ql-rows li { display: grid; grid-template-columns: 1fr 112px auto; align-items: center; gap: 10px; padding: 8px 10px; background: var(--surface-2); border-radius: 12px; }
+.ql-rows li > label:first-child { font-weight: 600; }
+.ql-rows .time { margin: 0; text-align: center; font: 700 22px/1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: .04em; padding: 9px 8px; }
+.partial { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 13px; cursor: pointer; }
+.partial input { width: 18px; height: 18px; accent-color: var(--volt); }
+
+@media (max-width: 640px) {
+  .sheet { width: 100%; max-width: none; margin: auto 0 0; border-radius: 18px 18px 0 0; border-bottom: 0; max-height: 94dvh; }
+  .sheet form { max-height: 94dvh; }
+  .ql-rows li { grid-template-columns: 1fr 100px auto; }
+}

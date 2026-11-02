@@ -1,4 +1,9 @@
-"""Station results logged as GitHub issues (label: station-log) via the issue form."""
+"""Station results logged as GitHub issues (label: station-log).
+
+Two body shapes are accepted: the single-station issue form, and the dashboard's
+quick-log sheet, which puts several stations under one "### Results" heading as
+lines like "- SkiErg: 4:55" or "- Wall balls: 3:10 (partial)".
+"""
 import os
 import re
 
@@ -21,6 +26,34 @@ def parse_issue_body(body):
         val = m.group(2).strip()
         fields[m.group(1).strip().lower()] = None if val == "_No response_" else val
     return fields
+
+
+TIME_RE = r"\d{1,2}:\d{2}(?::\d{2})?"
+RESULT_LINE = re.compile(r"^[-*\s]*(.+?)\s*[:=]\s*(" + TIME_RE + r")\s*(\(?partial\)?)?\s*$", re.I)
+
+
+def to_logs(issue):
+    """Every station result in an issue: one for the issue form, several for a quick log."""
+    f = parse_issue_body(issue.get("body"))
+    if f.get("results") is None:
+        log = to_log(issue)
+        return [log] if log else []
+    base = {
+        "issue": issue["number"],
+        "date": (f.get("date") or issue["created_at"][:10]).strip(),
+        "fresh": (f.get("conditions") or "").lower().startswith("fresh"),
+        "notes": f.get("notes") or "",
+    }
+    by_name = {k.lower(): v for k, v in STATION_KEYS.items()}
+    by_name["running"] = "runs"
+    logs = []
+    for line in f["results"].splitlines():
+        m = RESULT_LINE.match(line.strip())
+        station = m and by_name.get(m.group(1).strip().lower())
+        if station:
+            logs.append({**base, "station": station, "seconds": parse_time(m.group(2)),
+                         "full_distance": not m.group(3)})
+    return logs
 
 
 def to_log(issue):
@@ -75,7 +108,7 @@ def fetch_logs():
     issues = fetch_issues("station-log")
     if issues is None:
         return None
-    logs = [l for l in map(to_log, issues) if l]
+    logs = [l for i in issues for l in to_logs(i)]
     print(f"stations: {len(logs)} logged results")
     return sorted(logs, key=lambda l: (l["date"], l["issue"]))
 

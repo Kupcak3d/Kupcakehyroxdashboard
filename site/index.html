@@ -83,7 +83,7 @@
   <section class="card">
     <div class="row-head">
       <h2>Stations</h2>
-      <a id="log-link" class="button" target="_blank" rel="noopener">Log a result</a>
+      <button type="button" id="log-btn" class="button" disabled>Log results</button>
     </div>
     <p class="hint">Estimates use your latest full-distance log on tired legs. Fresh times get +10% for race fatigue.</p>
     <div class="table-wrap"><table id="stations"></table></div>
@@ -108,7 +108,44 @@
   <footer id="footer"></footer>
 </main>
 <div id="tip" class="tip" role="tooltip" hidden></div>
+
+<dialog id="quicklog" class="sheet" aria-labelledby="ql-title">
+  <form id="ql-form" novalidate>
+    <div class="sheet-head">
+      <h2 id="ql-title">Log stations</h2>
+      <button type="button" class="icon-btn" id="ql-close" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body">
+      <fieldset>
+        <legend>Session</legend>
+        <div class="chips" id="ql-sessions"></div>
+        <input type="date" id="ql-date" class="field" hidden>
+      </fieldset>
+      <fieldset>
+        <legend>Legs</legend>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="ql-cond" value="tired" checked><span>Tired</span></label>
+          <label><input type="radio" name="ql-cond" value="fresh"><span>Fresh</span></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Stations <small>tap all you did</small></legend>
+        <div class="chips grid" id="ql-stations"></div>
+      </fieldset>
+      <ol class="ql-rows" id="ql-rows"></ol>
+      <fieldset>
+        <legend>Notes <small>optional</small></legend>
+        <input type="text" id="ql-notes" class="field" placeholder="e.g. broke wall balls into 20s" autocomplete="off">
+      </fieldset>
+    </div>
+    <div class="sheet-foot">
+      <a id="ql-single" class="muted" target="_blank" rel="noopener">Single-result form</a>
+      <button type="submit" class="button" id="ql-send" disabled>Send</button>
+    </div>
+  </form>
+</dialog>
 <script src="bison.js"></script>
+<script src="quicklog.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
