@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 from . import garmin, stations, strava, vo2
 from .adapt import adapt
-from .avatar import avatar
+from .avatar import avatar, readiness_score
 from .load import daily_loads, series
 from .plan import ROOT, expand_sessions, load_plan
 
@@ -26,6 +26,26 @@ def read_json(path, default):
 def write_json(path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(obj, indent=1, sort_keys=True) + "\n")
+
+
+def with_readiness(well, since):
+    """Wellness rows from `since` on, with a 0-100 readiness score filled in.
+
+    Garmin's Personal API has no Training Readiness, so `readiness` is always empty.
+    Fill it from HRV, resting HR, sleep score and Body Battery (the same score the
+    avatar uses). Only the published copy gets it; plan adaptation keeps its own
+    HRV/RHR/sleep rules.
+    """
+    rows = []
+    for d in sorted(well):
+        if d < since.isoformat():
+            continue
+        row = dict(well[d])
+        if row.get("readiness") is None:
+            score, _ = readiness_score(well, date.fromisoformat(d))
+            row["readiness"] = None if score is None else round(score)
+        rows.append(row)
+    return rows
 
 
 def main(argv=None):
@@ -87,7 +107,7 @@ def main(argv=None):
         **result,
         "avatar": avatar(plan, result["sessions"], well, load_rows, history_days, today),
         "load": load_rows[-56:],
-        "wellness": [well[d] for d in sorted(well) if d >= (today - timedelta(days=28)).isoformat()],
+        "wellness": with_readiness(well, today - timedelta(days=28)),
         "vo2max": vo2.summary(activities, vo2_logs, athlete["max_hr"], rest_hr, today),
         "recent_activities": sorted(recent.values(), key=lambda a: a["start"], reverse=True)[:15],
     }

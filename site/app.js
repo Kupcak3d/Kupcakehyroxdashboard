@@ -158,7 +158,7 @@ function renderTiles(d) {
     ["Projected finish", p.total, `<span class="${delta < 0 ? "fast" : delta === 0 ? "ok" : "bad"}">${fmtDelta}</span> vs ${p.target} · runs ${p.runs} @ ${p.run_pace}/km`],
     ["Form", l.tsb ?? "–", l.tsb == null ? "" : l.tsb < -20 ? "Heavy fatigue" : l.tsb < -5 ? "Training hard (normal)" : "Fresh"],
     ["Load ratio", l.acwr ?? "–", "Acute:chronic. Aim 0.8–1.3"],
-    ["Readiness", w.readiness ?? "–", w.date ? `HRV ${w.hrv ?? "–"} · sleep ${w.sleep_score ?? "–"} · RHR ${w.resting_hr ?? "–"}` : "Connect Garmin"],
+    ["Readiness", w.readiness ?? "–", w.date ? `<span title="0–100 from HRV and resting HR vs your 7-day normal, sleep score and Body Battery">HRV ${w.hrv ?? "–"} · sleep ${w.sleep_score ?? "–"} · RHR ${w.resting_hr ?? "–"}</span>` : "Connect Garmin"],
     vo2Tile(d.vo2max || [], d.repo),
   ];
   $("tiles").innerHTML = tiles.map(([label, value, foot]) =>
