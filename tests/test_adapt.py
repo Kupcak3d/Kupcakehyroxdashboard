@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from hyrox.adapt import adapt
 from hyrox.load import daily_loads, series
 from hyrox.plan import expand_sessions, load_plan
-from hyrox.stations import parse_issue_body, to_log
+from hyrox.stations import parse_issue_body, to_log, to_logs
 
 PLAN = load_plan()
 
@@ -92,6 +92,24 @@ def test_issue_form_parsing():
     log = to_log({"number": 7, "body": body, "created_at": "2026-10-23T00:00:00Z"})
     assert log == {"issue": 7, "date": "2026-10-22", "station": "wall_balls", "seconds": 342,
                    "fresh": False, "full_distance": True, "notes": ""}
+
+
+def test_quick_log_parses_several_stations():
+    body = ("### Date\n\n2026-11-01\n\n### Session\n\nSat: Half sim\n\n"
+            "### Conditions\n\nTired (in a sim or after running)\n\n"
+            "### Results\n\n- SkiErg: 4:55\n- Wall balls: 3:10 (partial)\n- Running: 43:05\n- Nonsense: 1:00\n\n"
+            "### Notes\n\n_No response_")
+    logs = to_logs({"number": 21, "body": body, "created_at": "2026-11-02T00:00:00Z"})
+    assert [(l["station"], l["seconds"], l["full_distance"]) for l in logs] == [
+        ("ski", 295, True), ("wall_balls", 190, False), ("runs", 2585, True)]
+    assert all(l["date"] == "2026-11-01" and not l["fresh"] and l["issue"] == 21 for l in logs)
+
+
+def test_single_form_still_goes_through_to_logs():
+    body = ("### Station\n\nRow\n\n### Time (m:ss)\n\n3:58\n\n### Date\n\n_No response_\n\n"
+            "### Distance\n\nFull race distance\n\n### Conditions\n\nFresh (rested)\n\n### Notes\n\n_No response_")
+    [log] = to_logs({"number": 8, "body": body, "created_at": "2026-10-23T05:00:00Z"})
+    assert (log["station"], log["date"], log["fresh"]) == ("row", "2026-10-23", True)
 
 
 def test_hrv_drop_and_poor_sleep_count_as_low_recovery():
