@@ -27,7 +27,7 @@ body:
     id: distance
     attributes:
       label: Distance
-      description: Only full race distance/reps count toward your race estimate.
+      description: Only full race distance/reps count toward your race estimate. Partial efforts (e.g. 25 m sled push) still show as your latest result.
       options: [Full race distance, Partial]
     validations:
       required: true

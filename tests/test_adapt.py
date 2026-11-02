@@ -192,3 +192,15 @@ def test_addons_follow_kind_and_start_date():
     assert grip("2026-10-28") and grip("2026-10-31")
     assert not grip("2026-12-16") and not grip("2026-12-19")  # race week easy Wed, race day
     assert any(n.startswith("Lifts:") for n in by_date["2026-10-21"]["notes"])
+
+
+def test_partial_station_log_shows_as_latest_but_not_estimate():
+    from hyrox.adapt import station_summary
+    from hyrox.plan import load_plan
+    plan = load_plan()
+    logs = [{"issue": 2, "date": "2026-11-01", "station": "sled_push", "seconds": 75,
+             "fresh": False, "full_distance": False, "notes": "25 m"}]
+    row = next(r for r in station_summary(plan, logs) if r["key"] == "sled_push")
+    assert row["latest"] == "1:15" and row["latest_partial"] and row["partial_logs"] == 1
+    assert row["estimate"] == row["target"] and row["best"] is None and row["logs"] == 0
+    assert row["basis"] == "only partial logs so far, using target"

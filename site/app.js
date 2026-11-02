@@ -291,7 +291,7 @@ function renderStations(d) {
       const vs = even ? `<span class="ok">on target</span>`
         : `<span class="gapbar" style="width:${width}px;background:var(${behind ? "--critical" : "--fast"})"></span><span class="${behind ? "bad" : "fast"}">${behind ? "▲ +" : "▼ "}${s.gap_pct}%</span>`;
       return `<tr class="${d.focus.includes(s.key) ? "focus" : ""}"><td>${esc(s.name)}</td><td class="num">${s.estimate}</td><td>${vs}</td>
-        <td class="num">${s.target}</td><td class="num">${s.latest ?? "–"}</td><td class="wide">${esc(s.standard)}</td><td class="wide">${esc(s.basis)}</td></tr>`;
+        <td class="num">${s.target}</td><td class="num">${s.latest ? `${s.latest}${s.latest_partial ? ` <span class="muted">partial</span>` : ""}` : "–"}</td><td class="wide">${esc(s.standard)}</td><td class="wide">${esc(s.basis)}</td></tr>`;
     }).join("");
   const link = $("log-link");
   if (d.repo) link.href = `https://github.com/${d.repo}/issues/new?template=station-log.yml`;
