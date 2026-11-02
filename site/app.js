@@ -155,7 +155,7 @@ function renderTiles(d) {
   const delta = p.delta_s;
   const fmtDelta = `${delta <= 0 ? "−" : "+"}${Math.floor(Math.abs(delta) / 60)}:${String(Math.abs(delta) % 60).padStart(2, "0")}`;
   const tiles = [
-    ["Projected finish", p.total, `<span class="${delta <= 0 ? "ok" : "bad"}">${fmtDelta}</span> vs ${p.target} · runs ${p.runs} @ ${p.run_pace}/km`],
+    ["Projected finish", p.total, `<span class="${delta < 0 ? "fast" : delta === 0 ? "ok" : "bad"}">${fmtDelta}</span> vs ${p.target} · runs ${p.runs} @ ${p.run_pace}/km`],
     ["Form", l.tsb ?? "–", l.tsb == null ? "" : l.tsb < -20 ? "Heavy fatigue" : l.tsb < -5 ? "Training hard (normal)" : "Fresh"],
     ["Load ratio", l.acwr ?? "–", "Acute:chronic. Aim 0.8–1.3"],
     ["Readiness", w.readiness ?? "–", w.date ? `HRV ${w.hrv ?? "–"} · sleep ${w.sleep_score ?? "–"} · RHR ${w.resting_hr ?? "–"}` : "Connect Garmin"],
@@ -288,8 +288,8 @@ function renderStations(d) {
     d.stations.map((s) => {
       const behind = s.gap_pct > 0, even = s.gap_pct === 0;
       const width = Math.round((Math.abs(s.gap_pct) / maxGap) * 60);
-      const vs = even ? `<span class="muted">on target</span>`
-        : `<span class="gapbar" style="width:${width}px;background:var(${behind ? "--critical" : "--good"})"></span><span class="${behind ? "bad" : "ok"}">${behind ? "▲ +" : "▼ "}${s.gap_pct}%</span>`;
+      const vs = even ? `<span class="ok">on target</span>`
+        : `<span class="gapbar" style="width:${width}px;background:var(${behind ? "--critical" : "--fast"})"></span><span class="${behind ? "bad" : "fast"}">${behind ? "▲ +" : "▼ "}${s.gap_pct}%</span>`;
       return `<tr class="${d.focus.includes(s.key) ? "focus" : ""}"><td>${esc(s.name)}</td><td class="num">${s.estimate}</td><td>${vs}</td>
         <td class="num">${s.target}</td><td class="num">${s.latest ?? "–"}</td><td class="wide">${esc(s.standard)}</td><td class="wide">${esc(s.basis)}</td></tr>`;
     }).join("");

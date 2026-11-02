@@ -15,6 +15,7 @@
   --series-2: #38bdf8;
   --good: #3ddc84;
   --good-text: #3ddc84;
+  --fast: #b57bff;
   --warning: #ffb020;
   --serious: #ff7a45;
   --critical: #ff4d4d;
@@ -215,6 +216,7 @@ section.card { margin-bottom: 18px; }
 .spark-legend .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-primary); display: inline-block; margin-left: 8px; }
 .spark polyline { fill: none; stroke: var(--volt); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .ok { color: var(--good-text); }
+.fast { color: var(--fast); }
 .bad { color: var(--critical); }
 
 .legend { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
