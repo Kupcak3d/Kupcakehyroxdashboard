@@ -239,14 +239,27 @@ def station_summary(plan, logs):
             basis = "Oct 16 benchmark (fresh, +10%)"
         else:
             est, basis = target, "no data yet, using target"
+            if any(l["station"] == st["key"] for l in logs):
+                basis = "only partial logs so far, using target"
         rows.append({"key": st["key"], "name": st["name"], "standard": st["standard"],
                      "target": st["target"], "benchmark": st.get("benchmark"),
-                     "latest": fmt_time(latest["seconds"]) if latest else None,
-                     "latest_date": latest["date"] if latest else None,
-                     "best": fmt_time(min(l["seconds"] for l in mine)) if mine else None,
+                     **latest_fields(logs, st["key"], mine),
                      "estimate_s": round(est), "estimate": fmt_time(est), "basis": basis,
                      "gap_pct": round((est - target) / target * 100, 1), "logs": len(mine)})
     return rows
+
+
+def latest_fields(logs, key, full):
+    """'Latest' shows the newest log of any distance, so partial training reps
+    (e.g. 4 x 25 m sled push) appear in the table; only full-distance logs
+    feed the race estimate and 'best'."""
+    every = [l for l in logs if l["station"] == key]
+    latest = every[-1] if every else None
+    return {"latest": fmt_time(latest["seconds"]) if latest else None,
+            "latest_date": latest["date"] if latest else None,
+            "latest_partial": bool(latest) and not latest["full_distance"],
+            "partial_logs": len(every) - len(full),
+            "best": fmt_time(min(l["seconds"] for l in full)) if full else None}
 
 
 def focus_stations(rows, n=2):
@@ -282,9 +295,7 @@ def run_row(plan, logs, interval_deltas):
         est = 8 * (base + drift)
         basis = f"8 km at {fmt_time(base + drift)}/km" + (" (from interval results)" if drift else " (target pace)")
     return {"key": "runs", "name": "Running", "standard": "8 x 1 km", "target": fmt_time(target),
-            "latest": fmt_time(latest["seconds"]) if latest else None,
-            "latest_date": latest["date"] if latest else None,
-            "best": fmt_time(min(l["seconds"] for l in mine)) if mine else None,
+            **latest_fields(logs, "runs", mine),
             "estimate_s": round(est), "estimate": fmt_time(est), "basis": basis,
             "gap_pct": round((est - target) / target * 100, 1), "logs": len(mine)}
 
