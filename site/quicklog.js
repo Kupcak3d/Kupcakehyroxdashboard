@@ -11,6 +11,7 @@ const QL_STATIONS = [
 
 const QL_TIRED_KINDS = ["sim", "race", "intervals", "long", "easy_skill", "easy"];
 const QL_DRAFT = "hyrox-quicklog-draft";
+const QL_TOKEN = "hyrox-github-token";
 const QL_TIME = /^(\d{1,2}:)?\d{1,2}:\d{2}$/;
 
 // Number pads on phones have no colon, so build m:ss / h:mm:ss from the digits.
@@ -32,6 +33,12 @@ function qlLoad() {
 }
 function qlSave(state) {
   try { localStorage.setItem(QL_DRAFT, JSON.stringify(state)); } catch { /* private mode */ }
+}
+function qlToken() {
+  try { return localStorage.getItem(QL_TOKEN) || ""; } catch { return ""; }
+}
+function qlSetToken(t) {
+  try { t ? localStorage.setItem(QL_TOKEN, t) : localStorage.removeItem(QL_TOKEN); return true; } catch { return false; }
 }
 function qlClear() {
   try { localStorage.removeItem(QL_DRAFT); } catch { /* ignore */ }
@@ -97,10 +104,38 @@ function initQuickLog(d) {
     const n = state.picked.filter((k) => qlValid(state.times[k] || "")).length;
     const missing = state.picked.length - n;
     $("ql-send").disabled = !n || missing > 0;
-    $("ql-send").textContent = n ? `Send ${n} result${n > 1 ? "s" : ""}` : "Send";
+    const verb = qlToken() ? "Log" : "Send";
+    $("ql-send").textContent = n ? `${verb} ${n} result${n > 1 ? "s" : ""}` : verb;
   }
 
-  function renderAll() { renderSessions(); renderStations(); renderRows(); $("ql-notes").value = state.notes; }
+  function status(msg, kind) {
+    const el = $("ql-status");
+    el.hidden = !msg;
+    el.className = `ql-status ${kind || ""}`;
+    el.innerHTML = msg || "";
+  }
+
+  function renderConnect() {
+    const on = !!qlToken();
+    $("ql-connect-off").hidden = on;
+    $("ql-connect-on").hidden = !on;
+    $("ql-connect-sum").textContent = on ? "Saving straight to GitHub ✓" : "Log without leaving this page";
+    $("ql-repo-name").textContent = d.repo.split("/")[1];
+    updateSend();
+  }
+
+  function toast(html) {
+    const el = $("ql-toast");
+    el.innerHTML = html;
+    el.hidden = false;
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => { el.hidden = true; }, 6000);
+  }
+
+  function renderAll() {
+    renderSessions(); renderStations(); renderRows(); renderConnect(); status("");
+    $("ql-notes").value = state.notes;
+  }
   const save = () => qlSave({ ...state, saved: d.today });
 
   $("ql-sessions").addEventListener("click", (e) => {
@@ -152,9 +187,7 @@ function initQuickLog(d) {
   });
   $("ql-notes").addEventListener("input", (e) => { state.notes = e.target.value; save(); });
 
-  $("ql-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    if ($("ql-send").disabled) return;
+  function compose() {
     const sess = state.session === "other" ? null : sessionFor(state.date);
     const results = state.picked.map((k) => {
       const s = QL_STATIONS.find((x) => x.key === k);
@@ -169,13 +202,66 @@ function initQuickLog(d) {
     ].join("\n\n");
     const title = `Station log ${shortDate(state.date)}: ` +
       results.map((r) => `${r.short} ${r.time}${r.partial ? "*" : ""}`).join(", ");
-    const url = `https://github.com/${d.repo}/issues/new?` +
-      new URLSearchParams({ labels: "station-log", title, body }).toString();
+    return { title, body, n: results.length };
+  }
+
+  const githubUrl = ({ title, body }) => `https://github.com/${d.repo}/issues/new?` +
+    new URLSearchParams({ labels: "station-log", title, body }).toString();
+
+  function done(html) {
     qlClear();
     state = fresh();
     dlg.close();
-    window.open(url, "_blank", "noopener");
+    if (html) toast(html);
+  }
+
+  $("ql-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if ($("ql-send").disabled) return;
+    const issue = compose();
+    const token = qlToken();
+    if (!token) {
+      done();
+      window.open(githubUrl(issue), "_blank", "noopener");
+      return;
+    }
+    const send = $("ql-send");
+    send.disabled = true;
+    send.textContent = "Saving…";
+    status("");
+    try {
+      const r = await fetch(`https://api.github.com/repos/${d.repo}/issues`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+        body: JSON.stringify({ title: issue.title, body: issue.body, labels: ["station-log"] }),
+      });
+      if (!r.ok) {
+        const why = r.status === 401 ? "GitHub didn't accept the token (expired or revoked?)."
+          : r.status === 403 || r.status === 404 ? "The token can't write issues on this repo. Check its repository and Issues permission."
+          : `GitHub answered ${r.status}.`;
+        throw new Error(why);
+      }
+      const made = await r.json();
+      done(`<b>Logged ${issue.n} result${issue.n > 1 ? "s" : ""} ✓</b> The dashboard updates in a couple of minutes. ` +
+        `<a href="${esc(made.html_url)}" target="_blank" rel="noopener">#${made.number}</a>`);
+    } catch (err) {
+      updateSend();
+      const msg = err instanceof TypeError ? "Couldn't reach GitHub. Check your connection." : err.message;
+      status(`${esc(msg)} Your times are kept. <a href="${esc(githubUrl(issue))}" target="_blank" rel="noopener">Send via GitHub instead</a>`, "bad");
+    }
   });
+
+  $("ql-token-save").addEventListener("click", () => {
+    const t = $("ql-token").value.trim();
+    if (!/^(github_pat_|ghp_)\w{20,}$/.test(t)) { status("That doesn't look like a GitHub token.", "bad"); return; }
+    if (!qlSetToken(t)) { status("This browser won't store it (private mode?).", "bad"); return; }
+    $("ql-token").value = "";
+    $("ql-connect").open = false;
+    status("");
+    renderConnect();
+  });
+  $("ql-token-forget").addEventListener("click", () => { qlSetToken(""); renderConnect(); });
 
   const close = () => dlg.close();
   $("ql-close").addEventListener("click", close);

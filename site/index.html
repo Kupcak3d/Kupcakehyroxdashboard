@@ -137,13 +137,34 @@
         <legend>Notes <small>optional</small></legend>
         <input type="text" id="ql-notes" class="field" placeholder="e.g. broke wall balls into 20s" autocomplete="off">
       </fieldset>
+      <details class="ql-connect" id="ql-connect">
+        <summary id="ql-connect-sum">Log without leaving this page</summary>
+        <div id="ql-connect-off">
+          <p>Paste a GitHub token once and results save straight from here. It stays in this browser only.</p>
+          <ol>
+            <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">new fine-grained token</a>.</li>
+            <li>Repository access: <b>Only select repositories</b>, then <b id="ql-repo-name">this repo</b>.</li>
+            <li>Permissions: <b>Issues → Read and write</b>. Nothing else.</li>
+            <li>Generate, copy and paste it here.</li>
+          </ol>
+          <div class="ql-token-row">
+            <input type="password" id="ql-token" class="field" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
+            <button type="button" class="button ghost" id="ql-token-save">Save</button>
+          </div>
+        </div>
+        <div id="ql-connect-on" hidden>
+          <p>Results save straight to GitHub from this browser. <button type="button" class="linkish" id="ql-token-forget">Forget token</button></p>
+        </div>
+      </details>
     </div>
+    <p class="ql-status" id="ql-status" role="status" aria-live="polite" hidden></p>
     <div class="sheet-foot">
       <a id="ql-single" class="muted" target="_blank" rel="noopener">Single-result form</a>
       <button type="submit" class="button" id="ql-send" disabled>Send</button>
     </div>
   </form>
 </dialog>
+<div class="toast" id="ql-toast" role="status" aria-live="polite" hidden></div>
 <script src="bison.js"></script>
 <script src="quicklog.js"></script>
 <script src="app.js"></script>
