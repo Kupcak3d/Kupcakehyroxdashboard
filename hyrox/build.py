@@ -6,6 +6,7 @@
 import argparse
 import json
 import os
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -38,8 +39,8 @@ def with_readiness(well, since):
     """
     rows = []
     for d in sorted(well):
-        if d < since.isoformat():
-            continue
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) or d < since.isoformat():
+            continue  # skips junk keys such as "None" left in older caches
         row = dict(well[d])
         if row.get("readiness") is None:
             score, _ = readiness_score(well, date.fromisoformat(d))

@@ -19,3 +19,14 @@ def test_garmin_readiness_kept_and_no_data_stays_empty():
     rows = with_readiness(well, date(2026, 10, 1))
     assert rows[0]["readiness"] == 62
     assert rows[1]["readiness"] is None
+
+
+def test_undated_wellness_rows_are_skipped():
+    from hyrox import garmin
+    rows = {}
+    garmin.merge(rows, [{"calendarDate": None, "restingHeartRate": 50},
+                        {"calendarDate": "2026-11-01", "restingHeartRate": 48}], ["resting_hr"], "test")
+    assert list(rows) == ["2026-11-01"]
+    # Older caches already hold a "None" key; it must not break the build.
+    well = {"None": {"date": "None"}, "2026-11-01": {"date": "2026-11-01", "resting_hr": 48}}
+    assert [r["date"] for r in with_readiness(well, date(2026, 10, 1))] == ["2026-11-01"]

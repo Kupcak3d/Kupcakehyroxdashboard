@@ -5,6 +5,7 @@ as the `Garmin` repository secret (exposed to the build as GARMIN_PERSONAL_API_K
 The key is exchanged for a 24-hour bearer token on each run.
 """
 import os
+import re
 from datetime import timedelta
 
 CHUNK_DAYS = 14   # keep each range request small; the API's maximum isn't documented
@@ -81,7 +82,9 @@ def key_names(rec, prefix="", depth=2):
 def merge(rows, payload, metrics, label):
     n, unmapped = 0, set()
     for rec in records(payload):
-        d = next(str(rec[k])[:10] for k in DATE_KEYS if k in rec)
+        d = next((str(rec[k])[:10] for k in DATE_KEYS if rec.get(k)), "")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d):
+            continue  # e.g. calendarDate: null on a day Garmin hasn't filled in
         row = rows.setdefault(d, {"date": d})
         for m in metrics:
             v = find(rec, FIELDS[m])
