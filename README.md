@@ -48,9 +48,15 @@ combination, add `?mood=tired&action=sled` to the URL (moods: `exhausted`, `tire
 
 ## Logging station results
 
-Click **Log a result** on the dashboard. It opens a short GitHub issue form, and submitting it
-triggers a rebuild. Only issues you open count. Close the issue whenever you like, since closed
-issues still count.
+Tap **Log results** on the dashboard, pick the stations you did and type the times. All of them go
+into one `station-log` issue, which triggers a rebuild. Only issues you open count. Close the issue
+whenever you like, since closed issues still count.
+
+To log without leaving the dashboard, open "Log without leaving this page" in the sheet and paste a
+fine-grained token limited to this repo with only **Issues: Read and write**. It is kept in that
+browser's local storage and sent only to api.github.com. Without a token, Send opens a prefilled
+GitHub issue instead. If the token leaks, the worst anyone can do is open or edit issues here.
+Revoke it at github.com → Settings → Developer settings → Fine-grained tokens.
 
 ## One-time setup
 
