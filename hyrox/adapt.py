@@ -60,6 +60,11 @@ def interval_paces(sessions, by_day):
     for s in sessions:
         if s["kind"] != "intervals" or s["status"] != "done":
             continue
+        target = parse_time(s["intervals"]["pace"])
+        if s.get("manual_pace"):
+            s["actual_pace"] = s["manual_pace"]
+            s["pace_delta"] = parse_time(s["manual_pace"]) - target
+            continue
         laps = [l for a in by_day[s["date"]] for l in (a.get("laps") or [])
                 if l["distance_m"] >= 300 and l["moving_s"]
                 and l["moving_s"] / (l["distance_m"] / 1000) < WORK_LAP_MAX_PACE]
@@ -67,7 +72,6 @@ def interval_paces(sessions, by_day):
             continue
         dist = sum(l["distance_m"] for l in laps) / 1000
         actual = sum(l["moving_s"] for l in laps) / dist
-        target = parse_time(s["intervals"]["pace"])
         s["actual_pace"] = fmt_time(actual)
         s["pace_delta"] = round(actual - target)
         s["reps_done"] = len(laps)
