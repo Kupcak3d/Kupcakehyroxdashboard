@@ -59,6 +59,23 @@ def apply_addons(plan, sessions):
                 s.setdefault("notes", []).append(ad["note"])
 
 
+def apply_done(plan, sessions):
+    """Mark sessions in plan["done"] as completed, with any actual rep pace given.
+
+    For workouts the watch feed missed or can't describe (Garmin gives no lap
+    splits, so interval pace has to be entered by hand).
+    """
+    for d in plan.get("done", []):
+        for s in sessions:
+            if s["date"] != d["date"] or s["kind"] == "rest":
+                continue
+            s["completed"] = True
+            if d.get("pace") and s["kind"] == "intervals":
+                s["manual_pace"] = d["pace"]
+            if d.get("note"):
+                s.setdefault("notes", []).append(d["note"])
+
+
 def expand_sessions(plan):
     """Every planned session with a concrete date, after swaps, sorted by date."""
     out = []
@@ -75,6 +92,7 @@ def expand_sessions(plan):
             })
     apply_addons(plan, out)
     apply_swaps(plan, out)
+    apply_done(plan, out)
     return sorted(out, key=lambda s: s["date"])
 
 

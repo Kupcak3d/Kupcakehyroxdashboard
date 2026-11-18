@@ -5,7 +5,7 @@ from hyrox.load import daily_loads, series
 from hyrox.plan import expand_sessions, load_plan
 from hyrox.stations import parse_issue_body, to_log, to_logs
 
-PLAN = load_plan()
+PLAN = {**load_plan(), "done": []}  # keep fixtures independent of hand-logged sessions
 
 
 def run(activities, wellness=None, logs=None, today="2026-10-30"):
@@ -210,3 +210,29 @@ def test_addons_follow_kind_and_start_date():
     assert grip("2026-10-28") and grip("2026-10-31")
     assert not grip("2026-12-16") and not grip("2026-12-19")  # race week easy Wed, race day
     assert any(n.startswith("Lifts:") for n in by_date["2026-10-21"]["notes"])
+
+
+def test_done_entries_mark_session_complete_with_manual_pace():
+    plan = {**PLAN, "done": [{"date": "2026-11-17", "pace": "4:40", "note": "Done by hand"}]}
+    t = date(2026, 11, 18)
+    acts = steady_history("2026-11-16")
+    rows = series(daily_loads(acts, 190, 55), t - timedelta(days=60), t)
+    res = adapt(plan, expand_sessions(plan), acts, {}, [], rows, t)
+    s = next(s for s in res["sessions"] if s["date"] == "2026-11-17")
+    assert s["status"] == "done"
+    assert (s["actual_pace"], s["pace_delta"]) == ("4:40", -10)
+    assert "Done by hand" in s["notes"]
+    assert not any("missed" in a["text"].lower() and "Nov 17" in a["text"] for a in res["alerts"])
+
+
+def test_activity_search_reaches_past_local_midnight():
+    from hyrox.garmin import sync_activities
+    seen = {}
+
+    class Fake:
+        def search_activities(self, start, limit, start_date, end_date):
+            seen["end"] = end_date
+            return []
+
+    sync_activities(Fake(), {}, date(2026, 9, 1), date(2026, 11, 18), set())
+    assert seen["end"] == date(2026, 11, 19)

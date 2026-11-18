@@ -183,9 +183,12 @@ def laps_from(payload):
 
 
 def sync_activities(client, cache, since, today, interval_dates):
+    # Garmin may filter the search by UTC start time, so an evening workout in
+    # Vancouver (after 4 pm) falls on tomorrow's UTC date. Search a day ahead.
+    end = today + timedelta(days=1)
     new, start = [], 0
     while True:
-        page = client.search_activities(start=start, limit=100, start_date=since, end_date=today)
+        page = client.search_activities(start=start, limit=100, start_date=since, end_date=end)
         if not page:
             break
         new.extend(page)
